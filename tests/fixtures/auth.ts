@@ -263,16 +263,18 @@ export const test = base.extend<{}, {
       console.log('[auth] 点击了交易所"建立连接"弹窗的连接按钮');
     }
 
-    // 在 MetaMask 中确认签名（兼容新弹窗和已有页面）
-    await confirmMetaMask(context);
-
-    // ===== 第四步：启用交易（如果需要）=====
+    // ===== 第四步：启用交易 / 打开交易（如果需要）=====
     await new Promise(resolve => setTimeout(resolve, 3000));
 
     const enableTradeBtn = page.locator('text=启用交易').first();
-    if (await enableTradeBtn.isVisible({ timeout: 500 }).catch(() => false)) {
-      await enableTradeBtn.click();
-      console.log('[auth] 点击了"启用交易"');
+    const openTradeBtn = page.locator('text=打开交易').first();
+    const enableVisible = await enableTradeBtn.isVisible({ timeout: 500 }).catch(() => false);
+    const openVisible = !enableVisible && await openTradeBtn.isVisible({ timeout: 500 }).catch(() => false);
+
+    if (enableVisible || openVisible) {
+      const tradeBtn = enableVisible ? enableTradeBtn : openTradeBtn;
+      await tradeBtn.click();
+      console.log(`[auth] 点击了"${enableVisible ? '启用交易' : '打开交易'}"`);
 
       // 等待交易所弹出"建立连接"弹窗，点击「连接」
       await new Promise(resolve => setTimeout(resolve, 2000));
@@ -284,6 +286,8 @@ export const test = base.extend<{}, {
 
       // MetaMask 确认签名
       await confirmMetaMask(context);
+    } else {
+      console.log('[auth] 未检测到启用/打开交易按钮，跳过签名步骤');
     }
 
     // 等待登录完成

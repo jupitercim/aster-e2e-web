@@ -130,9 +130,7 @@ test.describe.serial('AsterDEX - 限价委托流程', () => {
   // 测试 2：取消限价委托
   // ========================================================
   test('取消刚才的限价委托单', async ({ loggedInPage: page }) => {
-    await page.goto(process.env.EXCHANGE_URL!);
-    await page.waitForLoadState('domcontentloaded');
-    await page.waitForTimeout(2000);
+    // 复用 test 1 已打开的页面，无需重新导航
 
     // 1. 切换到当前委托（Open Orders）
     await page.locator('button[role="tab"]:has-text("当前委托")').click();
@@ -167,9 +165,7 @@ test.describe.serial('AsterDEX - 限价委托流程', () => {
   // 测试 3：验证历史委托中的订单数据
   // ========================================================
   test('验证历史委托中订单状态、价格与数量', async ({ loggedInPage: page }) => {
-    await page.goto(process.env.EXCHANGE_URL!);
-    await page.waitForLoadState('domcontentloaded');
-    await page.waitForTimeout(2000);
+    // 复用 test 2 已打开的页面，无需重新导航
 
     // 1. 切换到历史委托（Order History）
     const historyTabNames = ['历史委托', '订单历史', 'Order History'];
