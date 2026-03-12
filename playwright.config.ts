@@ -7,6 +7,7 @@ export default defineConfig({
   testDir: './tests/cases',
   timeout: 120000,
   retries: 3,
+  workers: 1,  // MetaMask userdata 目录只能被一个进程占用，必须串行
   reporter: [['html', { open: 'never' }]],
   use: {
     baseURL: process.env.EXCHANGE_URL || 'https://your-exchange.com',

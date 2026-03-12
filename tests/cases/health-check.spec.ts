@@ -22,12 +22,15 @@ test.describe.serial('AsterDEX - 系统健康检查', () => {
     console.log(`[health] 页面标题: ${title}`);
     expect(title).toBeTruthy();
 
-    // 验证页面没有出现 500 / 403 / 404 错误关键字
-    const bodyText = await page.locator('body').textContent();
-    const errorKeywords = ['500', '404', '403', 'Internal Server Error', 'Not Found'];
-    for (const kw of errorKeywords) {
-      expect(bodyText).not.toContain(kw);
-    }
+    // 验证页面没有出现 HTTP 错误页（检查 h1 标签，避免误匹配 JS chunk 中的数字）
+    const errorPage = page.locator([
+      'h1:text-is("404")',
+      'h1:text-is("500")',
+      'h1:has-text("Not Found")',
+      'h1:has-text("Internal Server Error")',
+    ].join(', '));
+    const hasErrorPage = await errorPage.isVisible({ timeout: 2000 }).catch(() => false);
+    expect(hasErrorPage).toBe(false);
 
     console.log('[health] ✅ 主页加载正常');
   });

@@ -3,7 +3,7 @@ import { test, expect } from '../fixtures/auth';
 function getPortfolioUrl(): string {
   const base = process.env.EXCHANGE_URL || '';
   const origin = new URL(base).origin;
-  return `${origin}/zh-CN/portfolio`;
+  return `${origin}/zh-CN/portfolio/pro`;
 }
 
 test.describe.serial('AsterDEX - Portfolio 页面', () => {

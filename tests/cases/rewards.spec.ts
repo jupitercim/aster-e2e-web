@@ -3,7 +3,7 @@ import { test, expect } from '../fixtures/auth';
 function getRewardsUrl(): string {
   const base = process.env.EXCHANGE_URL || '';
   const origin = new URL(base).origin;
-  return `${origin}/zh-CN/rewards`;
+  return `${origin}/zh-CN/trade-and-earn`;
 }
 
 test.describe.serial('AsterDEX - Rewards 页面', () => {

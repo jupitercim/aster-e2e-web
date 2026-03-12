@@ -4,7 +4,7 @@ import { test, expect } from '../fixtures/auth';
 function getShieldUrl(): string {
   const base = process.env.EXCHANGE_URL || '';
   const origin = new URL(base).origin;
-  return `${origin}/zh-CN/trade/pro/shield/BTCUSDT`;
+  return `${origin}/zh-CN/trade/shield/futures/BTCUSDT`;
 }
 
 test.describe.serial('AsterDEX - Shield 模式交易', () => {
