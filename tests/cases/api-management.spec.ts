@@ -83,14 +83,27 @@ test.describe.serial('AsterDEX - API 管理', () => {
   test('创建 API 按钮点击后弹窗出现', async ({ loggedInPage: page }) => {
     // 复用 test 2 已打开的页面，无需重新导航
 
+    // 关闭任何已打开的弹窗（上一测试可能留下 overlay）
+    await page.keyboard.press('Escape');
+    await page.waitForTimeout(800);
+
     const createBtn = page.locator('button:has-text("创建 API"), button:has-text("创建API"), button:has-text("Create API")').first();
     if (!(await createBtn.isVisible({ timeout: 3000 }).catch(() => false))) {
       console.log('[test] ⚠️ 未找到「创建 API」按钮，跳过');
       return;
     }
 
-    await createBtn.click();
-    console.log('[test] 点击了「创建 API」按钮');
+    // 若弹窗已打开（按钮 data-state="open"），直接验证内容；否则点击触发
+    const isAlreadyOpen = await createBtn.evaluate((el: Element) =>
+      el.getAttribute('data-state') === 'open'
+    ).catch(() => false);
+
+    if (isAlreadyOpen) {
+      console.log('[test] 弹窗已处于打开状态，直接验证内容');
+    } else {
+      await createBtn.click({ force: true });
+      console.log('[test] 点击了「创建 API」按钮');
+    }
     await page.waitForTimeout(1500);
 
     // 验证弹窗或表单出现

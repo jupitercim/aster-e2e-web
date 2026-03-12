@@ -159,6 +159,7 @@ npx playwright codegen https://your-exchange.com
 
 - ⚠️ **测试钱包仅限测试网使用，切勿使用主网钱包或真实资产**
 - `.env` 文件已被 `.gitignore` 忽略，不会提交到仓库
+- 测试账号地址： 0xe43A28795ED2f20a9bdd5De87A31E535c0210604 请不要用于手工测试
 - MetaMask 扩展目录 `extensions/metamask/` 已被 `.gitignore` 忽略
 - 测试必须以 **有头模式**（`headless: false`）运行，因为 Chrome 扩展不支持无头模式
 - 期货合约用例为串行执行，请确保测试顺序：开仓 → 验证 → 取消 → 平仓
