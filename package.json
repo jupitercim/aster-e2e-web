@@ -10,11 +10,6 @@
     "test": "npx playwright test",
     "test:spot": "npx playwright test tests/cases/spot-order.spec.ts",
     "test:futures": "npx playwright test tests/cases/futures-order.spec.ts",
-    "test:static": "npx playwright test --project=static-qa",
-    "test:static:qa": "npx playwright test --project=static-qa",
-    "test:static:prod": "npx playwright test --project=static-prod",
-    "test:static:gray": "npx playwright test --project=static-gray",
-    "test:static:all": "npx playwright test --project=static-qa --project=static-prod --project=static-gray",
     "test:debug": "npx playwright test --debug",
     "report": "npx playwright show-report"
   },

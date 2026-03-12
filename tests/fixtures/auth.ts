@@ -5,6 +5,8 @@ import dotenv from 'dotenv';
 dotenv.config({ path: path.resolve(__dirname, '../../.env') });
 
 const METAMASK_PATH = path.resolve(__dirname, '../../extensions/metamask');
+// 固定 userDataDir：MetaMask 状态在 retry / 多次运行间持久保留
+const METAMASK_USER_DATA = path.resolve(__dirname, '../../.metamask-userdata');
 const TEST_SEED = process.env.TEST_SEED_PHRASE!;
 const TEST_PASSWORD = process.env.METAMASK_PASSWORD || 'Test1234!';
 
@@ -13,78 +15,105 @@ export const test = base.extend<{}, {
   loggedInPage: Page;
 }>({
   extensionContext: [async ({}, use) => {
-    const context = await chromium.launchPersistentContext('', {
-      headless: false,
+    const context = await chromium.launchPersistentContext(METAMASK_USER_DATA, {
+      headless: !!process.env.CHROME_EXECUTABLE,
+      executablePath: process.env.CHROME_EXECUTABLE || undefined,
       args: [
         `--disable-extensions-except=${METAMASK_PATH}`,
         `--load-extension=${METAMASK_PATH}`,
         '--no-first-run',
       ],
     });
+
+    // 灰度环境路由：如果设置了 K8S_CLUSTER，给所有请求注入对应 header
+    if (process.env.K8S_CLUSTER) {
+      await context.setExtraHTTPHeaders({ k8scluster: process.env.K8S_CLUSTER });
+      console.log(`[auth] 已注入请求 header: k8scluster=${process.env.K8S_CLUSTER}`);
+    }
+
     await use(context);
     await context.close();
   }, { scope: 'worker' }],
 
   loggedInPage: [async ({ extensionContext: context }, use) => {
-    // ===== 第一步：初始化 MetaMask（全部用精确选择器）=====
-    const mmPage = await context.waitForEvent('page', {
-      predicate: (p: Page) => p.url().includes('chrome-extension'),
-      timeout: 30000,
-    });
-    await mmPage.waitForLoadState();
-    await mmPage.waitForTimeout(2000);
-
-    // 勾选同意条款
-    const agreeCheckbox = mmPage.locator('[data-testid="onboarding-terms-checkbox"]');
-    if (await agreeCheckbox.isVisible({ timeout: 5000 }).catch(() => false)) {
-      await agreeCheckbox.click();
+    // ===== 第一步：初始化 MetaMask =====
+    // userDataDir 已存在时 MetaMask 不会自动弹出页面，改用短超时 + catch 容错
+    let mmPage: Page | undefined = context.pages().find(p => p.url().includes('chrome-extension'));
+    if (!mmPage) {
+      mmPage = await context.waitForEvent('page', {
+        predicate: (p: Page) => p.url().includes('chrome-extension'),
+        timeout: 5000,
+      }).catch(() => undefined);
     }
 
-    // 点击"导入已有钱包"
-    await mmPage.locator('[data-testid="onboarding-import-wallet"]').click();
-
-    // 同意改进计划（No thanks / I agree）
-    const noThanks = mmPage.locator('[data-testid="metametrics-no-thanks"]');
-    if (await noThanks.isVisible({ timeout: 5000 }).catch(() => false)) {
-      await noThanks.click();
+    if (mmPage) {
+      await mmPage.waitForLoadState();
+      await mmPage.waitForTimeout(2000);
+    } else {
+      console.log('[auth] MetaMask 扩展已就绪，跳过初始化');
     }
 
-    // 输入助记词
-    await mmPage.waitForSelector('[data-testid="import-srp__srp-word-0"]', { timeout: 15000 });
-    const words = TEST_SEED.split(' ');
-    for (let i = 0; i < words.length; i++) {
-      await mmPage.fill(`[data-testid="import-srp__srp-word-${i}"]`, words[i]);
-    }
+    if (mmPage) {
+      // ===== 判断是否首次初始化 =====
+      const agreeCheckbox = mmPage.locator('[data-testid="onboarding-terms-checkbox"]');
+      const isFirstSetup = await agreeCheckbox.isVisible({ timeout: 3000 }).catch(() => false);
 
-    // 点击确认助记词
-    await mmPage.locator('[data-testid="import-srp-confirm"]').click();
+      if (isFirstSetup) {
+        // ——— 首次运行：完整导入钱包 ———
+        await agreeCheckbox.click();
 
-    // 设置密码
-    await mmPage.waitForSelector('[data-testid="create-password-new"]', { timeout: 10000 });
-    await mmPage.fill('[data-testid="create-password-new"]', TEST_PASSWORD);
-    await mmPage.fill('[data-testid="create-password-confirm"]', TEST_PASSWORD);
-    await mmPage.locator('[data-testid="create-password-terms"]').click();
-    await mmPage.locator('[data-testid="create-password-import"]').click();
+        await mmPage.locator('[data-testid="onboarding-import-wallet"]').click();
 
-    // 等待导入完成，点击"Got it"
-    await mmPage.locator('[data-testid="onboarding-complete-done"]').click({ timeout: 30000 });
+        const noThanks = mmPage.locator('[data-testid="metametrics-no-thanks"]');
+        if (await noThanks.isVisible({ timeout: 5000 }).catch(() => false)) {
+          await noThanks.click();
+        }
 
-    // 关闭欢迎页
-    const nextBtn = mmPage.locator('[data-testid="pin-extension-next"]');
-    if (await nextBtn.isVisible({ timeout: 5000 }).catch(() => false)) {
-      await nextBtn.click();
-      const doneBtn = mmPage.locator('[data-testid="pin-extension-done"]');
-      if (await doneBtn.isVisible({ timeout: 3000 }).catch(() => false)) {
-        await doneBtn.click();
+        await mmPage.waitForSelector('[data-testid="import-srp__srp-word-0"]', { timeout: 15000 });
+        const words = TEST_SEED.split(' ');
+        for (let i = 0; i < words.length; i++) {
+          await mmPage.fill(`[data-testid="import-srp__srp-word-${i}"]`, words[i]);
+        }
+
+        await mmPage.locator('[data-testid="import-srp-confirm"]').click();
+
+        await mmPage.waitForSelector('[data-testid="create-password-new"]', { timeout: 10000 });
+        await mmPage.fill('[data-testid="create-password-new"]', TEST_PASSWORD);
+        await mmPage.fill('[data-testid="create-password-confirm"]', TEST_PASSWORD);
+        await mmPage.locator('[data-testid="create-password-terms"]').click();
+        await mmPage.locator('[data-testid="create-password-import"]').click();
+
+        await mmPage.locator('[data-testid="onboarding-complete-done"]').click({ timeout: 30000 });
+
+        const nextBtn = mmPage.locator('[data-testid="pin-extension-next"]');
+        if (await nextBtn.isVisible({ timeout: 5000 }).catch(() => false)) {
+          await nextBtn.click();
+          const doneBtn = mmPage.locator('[data-testid="pin-extension-done"]');
+          if (await doneBtn.isVisible({ timeout: 3000 }).catch(() => false)) {
+            await doneBtn.click();
+          }
+        }
+
+        console.log('[auth] MetaMask 首次初始化完成');
+      } else {
+        // ——— 非首次：只需解锁 ———
+        const unlockInput = mmPage.locator('[data-testid="unlock-password"]');
+        if (await unlockInput.isVisible({ timeout: 3000 }).catch(() => false)) {
+          await unlockInput.fill(TEST_PASSWORD);
+          await mmPage.locator('[data-testid="unlock-submit"]').click();
+          await mmPage.waitForTimeout(1000);
+          console.log('[auth] MetaMask 已解锁（复用已有状态）');
+        } else {
+          console.log('[auth] MetaMask 已处于解锁状态，跳过初始化');
+        }
       }
     }
 
-    console.log('[auth] MetaMask 初始化完成');
-
-    // ===== 第二步：连接交易所（这里用 auto() 自然语言）=====
+    // ===== 第二步：连接交易所 =====
     const page = await context.newPage();
     await page.goto(process.env.EXCHANGE_URL || 'https://your-exchange.com');
-    await page.waitForLoadState('networkidle');
+    await page.waitForLoadState('domcontentloaded');
+    await page.waitForTimeout(2000);
 
     // 先注册弹窗监听，再触发连接
     const popupPromise = context.waitForEvent('page', { timeout: 30000 });
@@ -96,10 +125,19 @@ export const test = base.extend<{}, {
     // 在弹窗中选择 MetaMask
     await page.locator('text=MetaMask').click();
 
-    // ===== 第二步：MetaMask 授权连接 =====
+    // ===== MetaMask 授权连接 =====
     const popup = await popupPromise;
     await popup.waitForLoadState();
     await popup.waitForTimeout(2000);
+
+    // MetaMask 弹窗可能显示解锁界面，先解锁再继续
+    const popupUnlockInput = popup.locator('[data-testid="unlock-password"]');
+    if (await popupUnlockInput.isVisible({ timeout: 3000 }).catch(() => false)) {
+      await popupUnlockInput.fill(TEST_PASSWORD);
+      await popup.locator('[data-testid="unlock-submit"]').click();
+      await popup.waitForTimeout(2000);
+      console.log('[auth] MetaMask 弹窗已解锁');
+    }
 
     // 用 data-testid 精确点击连接按钮（兼容多个版本）
     const connectSelectors = [
@@ -119,7 +157,8 @@ export const test = base.extend<{}, {
       }
     }
 
-    await popup.waitForTimeout(2000);
+    // 用主页等待，避免 popup 已关闭时竞态报错
+    await page.waitForTimeout(2000);
 
     // 如果弹窗还在，可能有第二步确认（如切换网络）
     if (!popup.isClosed()) {
@@ -183,6 +222,18 @@ export const test = base.extend<{}, {
         });
 
         for (const p of extPages) {
+          // 先检查是否处于解锁界面，解锁后 break 让 while 重试
+          try {
+            const unlockEl = p.locator('[data-testid="unlock-password"]');
+            if (await unlockEl.isVisible({ timeout: 300 }).catch(() => false)) {
+              await unlockEl.fill(TEST_PASSWORD);
+              await p.locator('[data-testid="unlock-submit"]').click();
+              console.log('[auth] MetaMask 扩展页已解锁');
+              await new Promise(resolve => setTimeout(resolve, 2000));
+              break; // 解锁后跳出 for，让 while 循环重新检查
+            }
+          } catch { /* 跳过 */ }
+
           for (const selector of signSelectors) {
             try {
               const btn = p.locator(selector).first();
