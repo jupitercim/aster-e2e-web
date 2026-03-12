@@ -162,3 +162,21 @@ npx playwright codegen https://your-exchange.com
 - MetaMask 扩展目录 `extensions/metamask/` 已被 `.gitignore` 忽略
 - 测试必须以 **有头模式**（`headless: false`）运行，因为 Chrome 扩展不支持无头模式
 - 期货合约用例为串行执行，请确保测试顺序：开仓 → 验证 → 取消 → 平仓
+
+## 测试计划
+
+| Module | Content | Spec Name | Owner |
+|--------|---------|-----------|-------|
+| HealthCheck | 检查 web 系统的健康状况 | `health-check.spec.ts` | |
+| Future Limit Order | Limit Order 的自动化测试 | `future-limit-order.spec.ts` | |
+| Future Market Order | Market Order 的自动化测试 | `future-market-order.spec.ts` | |
+| Future Other Order | 其他 Order 的自动化测试 | `future-other-order.spec.ts` | |
+| Spot Order | 现货交易 | `spot-order.spec.ts` | |
+| Shield Order | Shield 模式交易 | `shield-order.spec.ts` | |
+| Portfolio | Portfolio 页面测试 | `portfolio.spec.ts` | |
+| Rewards | Rewards | `rewards.spec.ts` | |
+| More Products | More Products | `more-products.spec.ts` | |
+| More Resources | More Resources | `more-resources.spec.ts` | |
+| Rocket Launch | Rocket Launch 页面测试 | `rocket-launch.spec.ts` | |
+| H5 Auto Test | H5 页面兼容测试 | `h5-auto.spec.ts` | |
+| Settings | Settings | `settings.spec.ts` | |
