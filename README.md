@@ -165,6 +165,8 @@ npx playwright codegen https://your-exchange.com
 
 ## 测试计划
 
+-详见：https://docs.google.com/spreadsheets/d/1l-PluC6mq9XYGbvHzjVJZBB3LjKjc5CHGuIG8HrlIdc/edit?gid=0#gid=0
+
 | Module | Content | Spec Name | Owner |
 |--------|---------|-----------|-------|
 | HealthCheck | 检查 web 系统的健康状况 | `health-check.spec.ts` | |
