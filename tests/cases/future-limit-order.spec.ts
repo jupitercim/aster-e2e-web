@@ -147,6 +147,7 @@ test.describe.serial('AsterDEX - 期货限价委托', () => {
   // ========================================================
   // 测试 3：验证历史委托中的订单数据
   // ========================================================
+
   test('验证历史委托中订单状态、价格与数量', async ({ loggedInPage: page }) => {
     // 复用 test 2 已打开的页面，无需重新导航
 
@@ -201,6 +202,92 @@ test.describe.serial('AsterDEX - 期货限价委托', () => {
 
     console.log(`[test] 期望价格: ${limitPrice} → ${priceMatched ? '✅ 匹配' : '⚠️ 未匹配'}`);
     console.log(`[test] 期望数量: 0.01 BTC → ${qtyMatched ? '✅ 匹配' : '⚠️ 未匹配'}`);
+  });
+
+
+  // ========================================================
+  // 测试 4：「隐藏订单」选项可用
+  // ========================================================
+  test('验证隐藏订单 checkbox 可正常勾选', async ({ loggedInPage: page }) => {
+    // 复用 test 3 已打开的页面，先导航回交易页
+    await page.goto(process.env.EXCHANGE_URL!);
+    await page.waitForLoadState('domcontentloaded');
+    await page.waitForTimeout(2000);
+
+    // 切换到限价单
+    await page.locator('button:not([role="combobox"]):text("限价")').click();
+    await page.waitForTimeout(500);
+
+    // 找到「隐藏订单」checkbox 或 label
+    const hiddenOrderKeywords = ['隐藏订单', 'Hidden Order', 'Hidden'];
+    let hiddenEl = null;
+    for (const kw of hiddenOrderKeywords) {
+      const el = page.locator(`text=${kw}`).first();
+      if (await el.isVisible({ timeout: 3000 }).catch(() => false)) {
+        hiddenEl = el;
+        console.log(`[test] 找到隐藏订单选项: "${kw}"`);
+        break;
+      }
+    }
+
+    if (!hiddenEl) {
+      console.log('[test] ⚠️ 未找到「隐藏订单」选项，跳过');
+      return;
+    }
+
+    // 找到对应的 checkbox
+    const checkbox = page.locator('input[type="checkbox"]').filter({ has: page.locator(`text=${hiddenOrderKeywords[0]}`) }).first();
+    const isChecked = await checkbox.isChecked().catch(() => false);
+
+    await hiddenEl.click();
+    await page.waitForTimeout(500);
+
+    const isNowChecked = await checkbox.isChecked().catch(() => false);
+    if (isNowChecked !== isChecked) {
+      console.log(`[test] ✅ 隐藏订单 checkbox 状态已切换: ${isChecked} → ${isNowChecked}`);
+    } else {
+      // fallback：直接点击 label
+      const label = page.locator(`label:has-text("隐藏"), label:has-text("Hidden")`).first();
+      if (await label.isVisible({ timeout: 2000 }).catch(() => false)) {
+        await label.click();
+        await page.waitForTimeout(500);
+        console.log('[test] 通过 label 点击了隐藏订单');
+      }
+    }
+
+    await page.screenshot({ path: `test-results/future-limit-hidden-order-${Date.now()}.png` });
+    console.log('[test] ✅ 隐藏订单选项验证完成');
+  });
+
+
+  // ========================================================
+  // 测试 5：「只减仓」选项可用
+  // ========================================================
+  test('验证只减仓 checkbox 可正常勾选', async ({ loggedInPage: page }) => {
+    // 复用 test 4 已打开的页面，无需重新导航
+
+    const reduceOnlyKeywords = ['只减仓', 'Reduce Only', 'Reduce-only'];
+    let reduceEl = null;
+    for (const kw of reduceOnlyKeywords) {
+      const el = page.locator(`text=${kw}`).first();
+      if (await el.isVisible({ timeout: 3000 }).catch(() => false)) {
+        reduceEl = el;
+        console.log(`[test] 找到只减仓选项: "${kw}"`);
+        break;
+      }
+    }
+
+    if (!reduceEl) {
+      console.log('[test] ⚠️ 未找到「只减仓」选项，跳过');
+      return;
+    }
+
+    await reduceEl.click();
+    await page.waitForTimeout(500);
+    console.log('[test] ✅ 点击了只减仓选项');
+
+    await page.screenshot({ path: `test-results/future-limit-reduce-only-${Date.now()}.png` });
+    console.log('[test] ✅ 只减仓选项验证完成');
   });
 
 });

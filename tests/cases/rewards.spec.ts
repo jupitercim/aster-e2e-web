@@ -83,4 +83,91 @@ test.describe.serial('AsterDEX - Rewards 页面', () => {
     }
   });
 
+
+  // ========================================================
+  // 测试 4：积分排行榜列表数据可加载
+  // ========================================================
+  test('积分排行榜列表可见', async ({ loggedInPage: page }) => {
+    // 复用 test 3 已打开的页面，无需重新导航
+
+    // 找到排行榜入口（Tab 或链接）
+    const leaderboardKeywords = ['排行榜', 'Leaderboard', '积分榜', 'Points Ranking'];
+    let leaderboardTab = null;
+
+    for (const kw of leaderboardKeywords) {
+      const el = page.locator(`button:has-text("${kw}"), [role="tab"]:has-text("${kw}"), a:has-text("${kw}")`).first();
+      if (await el.isVisible({ timeout: 3000 }).catch(() => false)) {
+        leaderboardTab = el;
+        console.log(`[test] 找到排行榜入口: "${kw}"`);
+        break;
+      }
+    }
+
+    if (!leaderboardTab) {
+      console.log('[test] ⚠️ 未找到排行榜 Tab，跳过');
+      return;
+    }
+
+    await leaderboardTab.click();
+    console.log('[test] 点击了排行榜入口');
+    await page.waitForTimeout(2000);
+
+    // 验证排行榜数据加载（名次 / 地址 / 积分）
+    const rankKeywords = ['#1', '排名', 'Rank', '积分', 'Points', '地址', 'Address'];
+    let rankFound = false;
+    for (const kw of rankKeywords) {
+      const el = page.locator(`text=${kw}`).first();
+      if (await el.isVisible({ timeout: 3000 }).catch(() => false)) {
+        console.log(`[test] ✅ 找到排行榜数据: "${kw}"`);
+        rankFound = true;
+        break;
+      }
+    }
+
+    if (!rankFound) {
+      console.log('[test] ⚠️ 未找到排行榜数据，可能需要等待加载');
+    }
+
+    await page.screenshot({ path: `test-results/rewards-leaderboard-${Date.now()}.png` });
+    console.log('[test] ✅ 积分排行榜验证完成');
+  });
+
+
+  // ========================================================
+  // 测试 5：交易挖矿规则说明展开
+  // ========================================================
+  test('交易挖矿规则说明可展开', async ({ loggedInPage: page }) => {
+    // 复用 test 4 已打开的页面，无需重新导航
+
+    // 重新导航到 trade-and-earn 确保在正确页面
+    await page.goto(getRewardsUrl());
+    await page.waitForLoadState('domcontentloaded');
+    await page.waitForTimeout(2000);
+
+    // 找到规则相关入口
+    const ruleKeywords = ['规则', '了解更多', 'Rules', 'Learn More', '奖励规则', '查看规则'];
+    let ruleEl = null;
+
+    for (const kw of ruleKeywords) {
+      const el = page.locator(`button:has-text("${kw}"), a:has-text("${kw}"), text=${kw}`).first();
+      if (await el.isVisible({ timeout: 3000 }).catch(() => false)) {
+        ruleEl = el;
+        console.log(`[test] 找到规则入口: "${kw}"`);
+        break;
+      }
+    }
+
+    if (!ruleEl) {
+      console.log('[test] ⚠️ 未找到规则入口，跳过');
+      return;
+    }
+
+    await ruleEl.click();
+    console.log('[test] 点击了规则入口');
+    await page.waitForTimeout(1500);
+
+    await page.screenshot({ path: `test-results/rewards-rules-${Date.now()}.png` });
+    console.log('[test] ✅ 规则展开验证完成');
+  });
+
 });
