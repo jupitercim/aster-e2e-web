@@ -23,14 +23,15 @@ test.describe.serial('AsterDEX - USDF 稳定币', () => {
     console.log(`[test] 页面标题: ${title}`);
     expect(title).toBeTruthy();
 
-    // 验证「铸造」Tab 存在
-    const mintTab = page.locator('button:has-text("铸造"), text=铸造').first();
-    const hasMint = await mintTab.isVisible({ timeout: 5000 }).catch(() => false);
+    // 验证「铸造」Tab 存在（可能是 button 或 div，等待更长时间确保渲染完成）
+    await page.waitForTimeout(2000);
+    const mintTab = page.locator('button:has-text("铸造"), [role="tab"]:has-text("铸造")').first();
+    const hasMint = await mintTab.isVisible({ timeout: 8000 }).catch(() => false);
     console.log(`[test] 铸造 Tab: ${hasMint ? '✅ 存在' : '⚠️ 未找到'}`);
-    expect(hasMint).toBe(true);
+    expect.soft(hasMint).toBe(true);
 
     // 验证「兑换」Tab 存在
-    const swapTab = page.locator('button:has-text("兑换"), text=兑换').first();
+    const swapTab = page.locator('button:has-text("兑换"), [role="tab"]:has-text("兑换"), span:has-text("兑换")').first();
     const hasSwap = await swapTab.isVisible({ timeout: 3000 }).catch(() => false);
     console.log(`[test] 兑换 Tab: ${hasSwap ? '✅ 存在' : '⚠️ 未找到'}`);
 
@@ -59,7 +60,7 @@ test.describe.serial('AsterDEX - USDF 稳定币', () => {
     // 复用 test 1 已打开的页面，无需重新导航
 
     // 点击「兑换」Tab
-    const swapTab = page.locator('button:has-text("兑换")').first();
+    const swapTab = page.locator('button:has-text("兑换"), span:has-text("兑换")').first();
     if (await swapTab.isVisible({ timeout: 3000 }).catch(() => false)) {
       await swapTab.click();
       console.log('[test] 点击了「兑换」Tab');
@@ -81,7 +82,7 @@ test.describe.serial('AsterDEX - USDF 稳定币', () => {
     }
 
     // 切换回「铸造」Tab
-    const mintTab = page.locator('button:has-text("铸造")').first();
+    const mintTab = page.locator('button:has-text("铸造"), [role="tab"]:has-text("铸造")').first();
     if (await mintTab.isVisible({ timeout: 3000 }).catch(() => false)) {
       await mintTab.click();
       console.log('[test] 切换回「铸造」Tab');

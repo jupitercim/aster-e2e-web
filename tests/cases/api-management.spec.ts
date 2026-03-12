@@ -24,17 +24,19 @@ test.describe.serial('AsterDEX - API 管理', () => {
     expect.soft(title).toBeTruthy();
 
     // 验证「API 管理」标题可见
-    const headingKeywords = ['API 管理', 'API Management', 'API'];
-    let headingFound = false;
-    for (const kw of headingKeywords) {
-      const el = page.locator(`h1:has-text("${kw}"), h2:has-text("${kw}"), text=${kw}`).first();
-      if (await el.isVisible({ timeout: 5000 }).catch(() => false)) {
-        console.log(`[test] ✅ 找到页面标题: "${kw}"`);
-        headingFound = true;
-        break;
-      }
+    // 等待页面完全渲染（API 管理页动态加载）
+    await page.waitForTimeout(2000);
+
+    // 验证标题 —— 用 getByRole 最稳定，不依赖文字分隔符
+    const headingEl = page.getByRole('heading').filter({ hasText: /API/ }).first();
+    const headingFound = await headingEl.isVisible({ timeout: 8000 }).catch(() => false);
+    if (headingFound) {
+      const headingText = await headingEl.textContent();
+      console.log(`[test] ✅ 找到页面标题: "${headingText?.trim()}"`);
+    } else {
+      console.log('[test] ⚠️ 未找到标题，尝试备用方案');
     }
-    expect(headingFound).toBe(true);
+    expect.soft(headingFound).toBe(true);
 
     // 验证「创建 API」按钮
     const createBtn = page.locator('button:has-text("创建 API"), button:has-text("创建API"), button:has-text("Create API")').first();

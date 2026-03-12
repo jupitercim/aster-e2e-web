@@ -61,7 +61,7 @@ test.describe.serial('AsterDEX - 期货市价委托', () => {
     await page.waitForTimeout(3000);
 
     // 选择市价单
-    await page.locator('button:text("市价")').click();
+    await page.locator('#tour-guide-place-order button:text("市价"), button:text("市价")').first().click();
     await page.waitForTimeout(500);
 
     // 选择 BTC 单位
@@ -104,7 +104,7 @@ test.describe.serial('AsterDEX - 期货市价委托', () => {
     // 复用 test 1 已打开的页面，无需重新导航
 
     // 选择市价单
-    await page.locator('button:text("市价")').click();
+    await page.locator('#tour-guide-place-order button:text("市价"), button:text("市价")').first().click();
     await page.waitForTimeout(500);
 
     // 选择 BTC 单位

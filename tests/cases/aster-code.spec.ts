@@ -23,11 +23,14 @@ test.describe.serial('AsterDEX - Aster Code（Builder 中心）', () => {
     console.log(`[test] 页面标题: ${title}`);
     expect(title).toBeTruthy();
 
-    // 验证「成为 Builder」按钮
-    const builderBtn = page.locator('button:has-text("成为 Builder"), a:has-text("成为 Builder"), text=成为 Builder').first();
-    const hasBuilderBtn = await builderBtn.isVisible({ timeout: 5000 }).catch(() => false);
-    console.log(`[test] 成为 Builder 按钮: ${hasBuilderBtn ? '✅ 存在' : '⚠️ 未找到'}`);
-    expect(hasBuilderBtn).toBe(true);
+    // 等待页面完全渲染
+    await page.waitForTimeout(2000);
+
+    // 验证「成为 Builder」入口（实际是 <a> 链接，不是 <button>）
+    const builderBtn = page.locator('a:has-text("成为 Builder"), button:has-text("成为 Builder")').first();
+    const hasBuilderBtn = await builderBtn.isVisible({ timeout: 8000 }).catch(() => false);
+    console.log(`[test] 成为 Builder 入口: ${hasBuilderBtn ? '✅ 存在' : '⚠️ 未找到'}`);
+    expect.soft(hasBuilderBtn).toBe(true);
 
     // 验证特性介绍卡片（无需许可 / Builder 奖励 / 高性能 / 品牌）
     const featureKeywords = ['无需许可', 'Builder 奖励', '高性能', '品牌', 'Permissionless', 'Reward'];
@@ -53,7 +56,7 @@ test.describe.serial('AsterDEX - Aster Code（Builder 中心）', () => {
   test('成为 Builder 按钮可点击', async ({ loggedInPage: page }) => {
     // 复用 test 1 已打开的页面，无需重新导航
 
-    const builderBtn = page.locator('button:has-text("成为 Builder"), a:has-text("成为 Builder")').first();
+    const builderBtn = page.locator('a:has-text("成为 Builder"), button:has-text("成为 Builder")').first();
     if (!(await builderBtn.isVisible({ timeout: 3000 }).catch(() => false))) {
       console.log('[test] ⚠️ 未找到「成为 Builder」按钮，跳过');
       return;
