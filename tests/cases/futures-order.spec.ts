@@ -98,9 +98,7 @@ test.describe.serial('AsterDEX - 期货合约交易', () => {
   });
 
   test('BTC/USDT 市价开多', async ({ loggedInPage: page }) => {
-    await page.goto(process.env.EXCHANGE_URL!);
-    await page.waitForLoadState('domcontentloaded');
-    await page.waitForTimeout(500);
+    // 复用 test 1 已打开的页面，无需重新导航
 
     // 1. 选择市价单
     await page.locator('button:text("市价")').click();
@@ -128,9 +126,7 @@ test.describe.serial('AsterDEX - 期货合约交易', () => {
     await expect(position).toBeVisible({ timeout: 10000 });
   });
   test('取消第一个限价委托订单', async ({ loggedInPage: page }) => {
-    await page.goto(process.env.EXCHANGE_URL!);
-    await page.waitForLoadState('networkidle');
-    await page.waitForTimeout(3000);
+    // 复用 test 2 已打开的页面，无需重新导航
 
     // 1. 切换到当前委托 tab
     await page.locator('button[role="tab"]:has-text("当前委托")').click();
@@ -169,9 +165,7 @@ test.describe.serial('AsterDEX - 期货合约交易', () => {
   });
 
   test('市价平仓第一个持仓', async ({ loggedInPage: page }) => {
-    await page.goto(process.env.EXCHANGE_URL!);
-    await page.waitForLoadState('domcontentloaded');
-    await page.waitForTimeout(3000);
+    // 复用 test 3 已打开的页面，无需重新导航
 
     // 1. 切换到仓位 tab
     await page.locator('button[role="tab"]:has-text("仓位")').click();
