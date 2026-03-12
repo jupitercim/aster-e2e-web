@@ -1,6 +1,6 @@
 import { test, expect } from '../fixtures/auth';
 
-test.describe('AsterDEX - 现货交易', () => {
+test.describe.serial('AsterDEX - 现货交易', () => {
 
   test('BTC/USDT 限价买入', async ({ loggedInPage: page }) => {
     await page.goto('/trade/BTC-USDT');
@@ -31,9 +31,7 @@ test.describe('AsterDEX - 现货交易', () => {
   });
 
   test('市价买入 200 USDT 的 BTC', async ({ loggedInPage: page }) => {
-    await page.goto('/trade/BTC-USDT');
-    await page.waitForLoadState('networkidle');
-    await page.waitForTimeout(2000);
+    // 复用 test 1 已打开的页面，无需重新导航
 
     // 切换到市价单
     await page.getByText('市价', { exact: true }).first().click();
