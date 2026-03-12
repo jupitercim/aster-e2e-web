@@ -3,8 +3,7 @@ import { test, expect } from '../fixtures/auth';
 function getRocketLaunchUrl(): string {
   const base = process.env.EXCHANGE_URL || '';
   const origin = new URL(base).origin;
-  // TODO: 确认 Rocket Launch 实际路径
-  return `${origin}/zh-CN/launch`;
+  return `${origin}/zh-CN/rocket-launch`;
 }
 
 test.describe.serial('AsterDEX - Rocket Launch 页面', () => {

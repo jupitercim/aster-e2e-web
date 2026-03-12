@@ -121,8 +121,14 @@ test.describe.serial('AsterDEX - Shield 模式交易', () => {
 
     await checkToast(page, ['下单成功', '委托成功', '成功提交', 'Order placed', 'Success'], 'Shield限价买入');
 
-    // 切换到当前委托
-    await page.locator('button[role="tab"]:has-text("当前委托")').click();
+    // 切换到当前委托（Tab 文案因页面而异）
+    for (const name of ['当前委托', 'Open Orders', '委托', 'Orders']) {
+      const tab = page.locator(`button[role="tab"]:has-text("${name}")`);
+      if (await tab.isVisible({ timeout: 2000 }).catch(() => false)) {
+        await tab.click();
+        break;
+      }
+    }
     await page.waitForTimeout(1000);
     console.log('[test] ✅ Shield 模式限价买入下单完成');
   });
@@ -134,7 +140,16 @@ test.describe.serial('AsterDEX - Shield 模式交易', () => {
   test('取消 Shield 委托单', async ({ loggedInPage: page }) => {
     // 复用 test 2 已打开的页面，无需重新导航
 
-    await page.locator('button[role="tab"]:has-text("当前委托")').click();
+    // Shield 页面 Tab 文案可能与期货页不同，逐一尝试
+    const tabNames = ['当前委托', 'Open Orders', '委托', 'Orders'];
+    for (const name of tabNames) {
+      const tab = page.locator(`button[role="tab"]:has-text("${name}")`);
+      if (await tab.isVisible({ timeout: 2000 }).catch(() => false)) {
+        await tab.click();
+        console.log(`[test] 点击了 Tab: "${name}"`);
+        break;
+      }
+    }
     await page.waitForTimeout(1000);
 
     const firstCancelBtn = page.locator('button:text("取消")').first();
