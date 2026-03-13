@@ -153,14 +153,16 @@ test.describe.serial('AsterDEX - 期货合约交易', () => {
       await confirmBtn.click();
       console.log('[test] 确认取消');
     }
-    await page.waitForTimeout(2000);
 
-    // 5. 验证：委托数量减少
-    const tabTextAfter = await page.locator('button[role="tab"]:has-text("当前委托")').textContent();
-    const orderCountAfter = parseInt(tabTextAfter?.match(/\((\d+)\)/)?.[1] || '0');
+    // 5. 轮询等待委托数量减少（最长 15 秒，避免因网络延迟导致计数未更新）
+    let orderCountAfter = orderCountBefore;
+    await expect.poll(async () => {
+      const text = await page.locator('button[role="tab"]:has-text("当前委托")').textContent();
+      orderCountAfter = parseInt(text?.match(/\((\d+)\)/)?.[1] || '0');
+      return orderCountAfter;
+    }, { timeout: 15000, intervals: [1000, 2000, 3000], message: '委托数量应在取消后减少' })
+      .toBeLessThan(orderCountBefore);
     console.log(`[test] 取消后委托数量: ${orderCountAfter}`);
-
-    expect(orderCountAfter).toBeLessThan(orderCountBefore);
     console.log('[test] ✅ 取消订单成功');
   });
 
@@ -195,14 +197,16 @@ test.describe.serial('AsterDEX - 期货合约交易', () => {
       await dialogConfirm.click();
       console.log('[test] 确认平仓');
     }
-    await page.waitForTimeout(3000);
 
-    // 5. 验证：仓位数量减少
-    const tabTextAfter = await page.locator('button[role="tab"]:has-text("仓位")').textContent();
-    const posCountAfter = parseInt(tabTextAfter?.match(/\((\d+)\)/)?.[1] || '0');
+    // 5. 轮询等待仓位数量减少（最长 15 秒，避免因区块链确认延迟导致计数未更新）
+    let posCountAfter = posCountBefore;
+    await expect.poll(async () => {
+      const text = await page.locator('button[role="tab"]:has-text("仓位")').textContent();
+      posCountAfter = parseInt(text?.match(/\((\d+)\)/)?.[1] || '0');
+      return posCountAfter;
+    }, { timeout: 15000, intervals: [1000, 2000, 3000], message: '仓位数量应在平仓后减少' })
+      .toBeLessThan(posCountBefore);
     console.log(`[test] 平仓后仓位数量: ${posCountAfter}`);
-
-    expect(posCountAfter).toBeLessThan(posCountBefore);
     console.log('[test] ✅ 市价平仓成功');
   });
 

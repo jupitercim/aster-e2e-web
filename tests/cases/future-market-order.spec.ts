@@ -163,13 +163,16 @@ test.describe.serial('AsterDEX - 期货市价委托', () => {
       await dialogConfirm.click();
       console.log('[test] 确认平仓');
     }
-    await page.waitForTimeout(3000);
 
-    const tabTextAfter = await page.locator('button[role="tab"]:has-text("仓位")').textContent();
-    const posCountAfter = parseInt(tabTextAfter?.match(/\((\d+)\)/)?.[1] || '0');
+    // 轮询等待仓位数量减少（最长 15 秒，避免因区块链确认延迟导致计数未更新）
+    let posCountAfter = posCountBefore;
+    await expect.poll(async () => {
+      const text = await page.locator('button[role="tab"]:has-text("仓位")').textContent();
+      posCountAfter = parseInt(text?.match(/\((\d+)\)/)?.[1] || '0');
+      return posCountAfter;
+    }, { timeout: 15000, intervals: [1000, 2000, 3000], message: '仓位数量应在平仓后减少' })
+      .toBeLessThan(posCountBefore);
     console.log(`[test] 平仓后仓位数量: ${posCountAfter}`);
-
-    expect(posCountAfter).toBeLessThan(posCountBefore);
     console.log('[test] ✅ 市价平仓成功');
   });
 
