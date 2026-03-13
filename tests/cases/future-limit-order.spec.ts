@@ -200,6 +200,7 @@ test.describe.serial('AsterDEX - 期货限价委托', () => {
     const priceMatched = limitPrice > 0 && numericValues.some(v => v === limitPrice);
     const qtyMatched = rowText.includes('0.01');
 
+    console.log(`[test] 行内数值: ${numericValues.join(', ')}`);
     console.log(`[test] 期望价格: ${limitPrice} → ${priceMatched ? '✅ 匹配' : '⚠️ 未匹配'}`);
     console.log(`[test] 期望数量: 0.01 BTC → ${qtyMatched ? '✅ 匹配' : '⚠️ 未匹配'}`);
   });
