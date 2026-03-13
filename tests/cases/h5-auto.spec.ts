@@ -145,136 +145,196 @@ test.describe.serial('AsterDEX - H5 页面兼容测试', () => {
 
 
   // ========================================================
-  // 测试 5：H5 移动端底部导航 - 点击各子页面并验证内容
+  // 测试 5：H5 移动端各子页面内容验证
+  //
+  // H5 布局说明（来自截图分析）：
+  //   - /zh-CN 是落地页（营销页），有汉堡菜单（≡），无传统底部 nav
+  //   - 交易页（EXCHANGE_URL）是全屏交易界面
+  //     底部内页 tab：当前委托 | 仓位 | 资产 | TWAP
+  //   - "首页"/"行情" 均通过页面直接导航验证，而非点击固定底部 nav
   // ========================================================
-  test('H5 移动端底部导航各子页面内容存在', async ({ loggedInPage: page }) => {
-    // 切回移动端视口
+  test('H5 移动端各子页面内容存在', async ({ loggedInPage: page }) => {
     await page.setViewportSize(MOBILE_VIEWPORT);
+    let successCount = 0;
+
+    // ---- 1. 首页（落地页） ----
     await page.goto(getBaseUrl());
     await page.waitForLoadState('domcontentloaded');
     await page.waitForTimeout(2000);
 
-    // 导航项配置：label=日志标识, navKeywords=底部导航按钮可能的文案, verifyKeywords=进入后页面应含的关键词
-    const navItems = [
-      {
-        label: '首页',
-        navKeywords: ['首页', 'Home'],
-        verifyKeywords: ['BTC', 'ETH', 'USDT', '涨跌幅', '最新价'],
-      },
-      {
-        label: '行情',
-        navKeywords: ['行情', 'Markets', 'Market'],
-        verifyKeywords: ['BTC', 'ETH', '24h', '涨跌', '最新价'],
-      },
-      {
-        label: '交易',
-        navKeywords: ['交易', 'Trade', 'Trading'],
-        verifyKeywords: ['限价', '市价', '数量', 'BTC', 'USDT'],
-      },
-      {
-        label: '资产',
-        navKeywords: ['资产', 'Assets', '钱包', 'Wallet'],
-        verifyKeywords: ['USDT', '总资产', '可用', '余额', 'Balance'],
-      },
-      {
-        label: '订单',
-        navKeywords: ['订单', 'Orders', 'Order'],
-        verifyKeywords: ['委托', '历史', '仓位', 'Open', 'History'],
-      },
-    ];
-
-    let successCount = 0;
-
-    for (const nav of navItems) {
-      // 尝试找到底部导航按钮（用多个关键词备选）
-      let navBtn = null;
-      for (const kw of nav.navKeywords) {
-        // 优先匹配底部 nav / footer 区域；fallback 找任意可见元素
-        const candidates = [
-          page.locator(`nav >> text=${kw}`).first(),
-          page.locator(`footer >> text=${kw}`).first(),
-          page.locator(`[role="tablist"] >> text=${kw}`).first(),
-          page.locator(`a:has-text("${kw}")`).last(),
-          page.locator(`text=${kw}`).last(),
-        ];
-        for (const el of candidates) {
-          if (await el.isVisible({ timeout: 1500 }).catch(() => false)) {
-            navBtn = el;
-            break;
-          }
-        }
-        if (navBtn) break;
+    const homeKeywords = ['去中心化', 'ASTER', '总交易量', '用户', '启动应用程序'];
+    for (const kw of homeKeywords) {
+      if (await page.locator(`text=${kw}`).first().isVisible({ timeout: 2000 }).catch(() => false)) {
+        console.log(`[test] ✅ 「首页」内容存在: "${kw}"`);
+        successCount++;
+        break;
       }
+    }
+    await page.screenshot({ path: `test-results/h5-nav-首页-${Date.now()}.png` });
 
-      if (!navBtn) {
-        console.log(`[test] ⚠️ 未找到「${nav.label}」导航入口，跳过`);
-        continue;
-      }
+    // ---- 2. 行情（通过汉堡菜单 ≡ 进入） ----
+    // 汉堡菜单通常是页面右上角唯一不含文字的按钮
+    const hamburger = page.locator('button').filter({ hasNot: page.locator(':has-text("启动"), :has-text("下载"), :has-text("交易")') }).last();
+    let marketFound = false;
+    if (await hamburger.isVisible({ timeout: 2000 }).catch(() => false)) {
+      await hamburger.click();
+      await page.waitForTimeout(1000);
 
-      // 点击导航按钮
-      await navBtn.click();
-      await page.waitForTimeout(2000);
-      console.log(`[test] 已点击导航「${nav.label}」`);
-
-      // 验证页面有预期关键词内容
-      let found = false;
-      for (const kw of nav.verifyKeywords) {
+      // 菜单打开后找行情/Markets 入口
+      const marketKeywords = ['行情', 'Markets', 'Market', '市场'];
+      for (const kw of marketKeywords) {
         const el = page.locator(`text=${kw}`).first();
         if (await el.isVisible({ timeout: 2000 }).catch(() => false)) {
-          console.log(`[test] ✅ 「${nav.label}」页面内容存在: "${kw}"`);
-          found = true;
+          await el.click();
+          await page.waitForTimeout(2000);
+          // 验证进入后的内容
+          const marketContentKws = ['BTC', 'ETH', '24h', '涨跌', '最新价', '合约'];
+          for (const ck of marketContentKws) {
+            if (await page.locator(`text=${ck}`).first().isVisible({ timeout: 2000 }).catch(() => false)) {
+              console.log(`[test] ✅ 「行情」页面内容存在: "${ck}"`);
+              marketFound = true;
+              successCount++;
+              break;
+            }
+          }
+          break;
+        }
+      }
+      if (!marketFound) {
+        console.log('[test] ⚠️ 汉堡菜单中未找到「行情」入口，按 Escape 关闭');
+        await page.keyboard.press('Escape');
+      }
+    } else {
+      console.log('[test] ⚠️ 未找到汉堡菜单按钮，跳过「行情」验证');
+    }
+    await page.screenshot({ path: `test-results/h5-nav-行情-${Date.now()}.png` });
+
+    // ---- 3. 交易页 ----
+    await page.goto(process.env.EXCHANGE_URL!);
+    await page.waitForLoadState('domcontentloaded');
+    await page.waitForTimeout(2000);
+
+    const tradeKws = ['限价', '市价', 'BTC', 'USDT', '开多', '开空'];
+    for (const kw of tradeKws) {
+      if (await page.locator(`text=${kw}`).first().isVisible({ timeout: 3000 }).catch(() => false)) {
+        console.log(`[test] ✅ 「交易」页面内容存在: "${kw}"`);
+        successCount++;
+        break;
+      }
+    }
+    await page.screenshot({ path: `test-results/h5-nav-交易-${Date.now()}.png` });
+
+    // ---- 4. 资产 tab（交易页底部内页 tab） ----
+    const assetTab = page.locator('button[role="tab"]:has-text("资产"), [role="tab"]:has-text("资产")').first();
+    if (await assetTab.isVisible({ timeout: 3000 }).catch(() => false)) {
+      await assetTab.click();
+      await page.waitForTimeout(1500);
+      const assetKws = ['USDT', '余额', '总余额', 'Balance', '可用', '存款'];
+      for (const kw of assetKws) {
+        if (await page.locator(`text=${kw}`).first().isVisible({ timeout: 2000 }).catch(() => false)) {
+          console.log(`[test] ✅ 「资产」Tab 内容存在: "${kw}"`);
           successCount++;
           break;
         }
       }
-      if (!found) {
-        console.log(`[test] ⚠️ 「${nav.label}」页面未找到预期内容（${nav.verifyKeywords.join(' / ')}）`);
-      }
-
-      await page.screenshot({ path: `test-results/h5-nav-${nav.label}-${Date.now()}.png` });
+    } else {
+      console.log('[test] ⚠️ 未找到「资产」Tab，跳过');
     }
+    await page.screenshot({ path: `test-results/h5-nav-资产-${Date.now()}.png` });
 
-    console.log(`[test] 导航验证结果: ${successCount}/${navItems.length} 个页面找到内容`);
-    // 至少有一个导航页面内容正常
-    expect(successCount).toBeGreaterThan(0);
-    console.log('[test] ✅ H5 底部导航各子页面验证完成');
+    // ---- 5. 当前委托 tab（交易页底部内页 tab） ----
+    const orderTab = page.locator('button[role="tab"]:has-text("当前委托"), [role="tab"]:has-text("当前委托")').first();
+    if (await orderTab.isVisible({ timeout: 3000 }).catch(() => false)) {
+      await orderTab.click();
+      await page.waitForTimeout(1500);
+      const orderKws = ['当前委托', 'BTCUSDT', '限价', '委托', '取消'];
+      for (const kw of orderKws) {
+        if (await page.locator(`text=${kw}`).first().isVisible({ timeout: 2000 }).catch(() => false)) {
+          console.log(`[test] ✅ 「当前委托」Tab 内容存在: "${kw}"`);
+          successCount++;
+          break;
+        }
+      }
+    } else {
+      console.log('[test] ⚠️ 未找到「当前委托」Tab，跳过');
+    }
+    await page.screenshot({ path: `test-results/h5-nav-委托-${Date.now()}.png` });
+
+    console.log(`[test] 页面内容验证: ${successCount}/5 个子页面找到内容`);
+    // 至少 3 个页面找到内容
+    expect(successCount).toBeGreaterThanOrEqual(3);
+    console.log('[test] ✅ H5 各子页面内容验证完成');
   });
 
 
   // ========================================================
   // 测试 6：H5 移动端限价挂单（mark price - 1000）
+  //
+  // H5 布局没有 dt:has-text("标记价格")，
+  // 改为先选"限价"再读取价格输入框的预填值（交易所自动填入当前价）
   // ========================================================
   test('H5 移动端限价挂单 BTC/USDT 0.01 BTC', async ({ loggedInPage: page }) => {
-    // 确保在移动端视口下操作
     await page.setViewportSize(MOBILE_VIEWPORT);
 
-    // 进入合约交易页
     await page.goto(process.env.EXCHANGE_URL!);
     await page.waitForLoadState('domcontentloaded');
     await page.waitForTimeout(3000);
 
-    // 读取 Mark Price（标记价格）
-    const markPriceEl = page.locator('dt:has-text("标记价格")').locator('..').locator('dd').first();
-    await expect(markPriceEl).toBeVisible({ timeout: 10000 });
-    const markPriceText = await markPriceEl.textContent();
-
-    if (!markPriceText) throw new Error('[test] ❌ 无法读取 Mark Price');
-
-    const markPrice = parseFloat(markPriceText.replace(/,/g, '').trim());
-    limitPrice = Math.floor(markPrice - 1000);
-    console.log(`[test] Mark Price: ${markPrice} | 限价单价格: ${limitPrice}`);
-
-    // 选择限价单（排除 combobox 的"限价止盈止损"）
-    await page.locator('button:not([role="combobox"]):text("限价")').click();
-    await page.waitForTimeout(500);
-
-    // 输入价格
+    // ===== 切换到限价模式并读取当前价格 =====
+    // H5 布局：页面默认已是限价单模式，价格输入框预填了当前价（无需点击按钮）
+    // 桌面布局：需要先点击「限价」按钮
     const priceInput = page.locator('input[placeholder="价格"]');
+    let isPriceVisible = await priceInput.isVisible({ timeout: 5000 }).catch(() => false);
+
+    if (!isPriceVisible) {
+      // 桌面/平板：尝试多种选择器点击「限价」按钮
+      const limitSelectors = [
+        'button:not([role="combobox"]):text("限价")',
+        '[role="tab"]:text("限价")',
+        'text=限价',
+      ];
+      for (const sel of limitSelectors) {
+        const btn = page.locator(sel).first();
+        if (await btn.isVisible({ timeout: 2000 }).catch(() => false)) {
+          await btn.click();
+          console.log(`[test] 点击限价按钮: ${sel}`);
+          break;
+        }
+      }
+      await page.waitForTimeout(800);
+      isPriceVisible = await priceInput.isVisible({ timeout: 5000 }).catch(() => false);
+    } else {
+      console.log('[test] H5 布局：已处于限价模式，跳过按钮点击');
+    }
+
+    // 读取当前价格
+    // 方式1：dt:has-text("标记价格") - 桌面/平板布局
+    let markPrice = 0;
+    const markPriceEl = page.locator('dt:has-text("标记价格")').locator('..').locator('dd').first();
+    if (await markPriceEl.isVisible({ timeout: 2000 }).catch(() => false)) {
+      const text = await markPriceEl.textContent();
+      markPrice = parseFloat(text?.replace(/,/g, '').trim() || '0');
+      console.log(`[test] 桌面布局读取 Mark Price: ${markPrice}`);
+    }
+
+    // 方式2：H5 布局 - 读取价格输入框的预填值
+    if ((!markPrice || isNaN(markPrice) || markPrice <= 0) && isPriceVisible) {
+      const val = await priceInput.inputValue();
+      markPrice = parseFloat(val.replace(/,/g, '').trim() || '0');
+      if (markPrice > 0) console.log(`[test] H5 布局 - 从价格输入框读取当前价: ${markPrice}`);
+    }
+
+    if (!markPrice || isNaN(markPrice) || markPrice <= 0) {
+      throw new Error('[test] ❌ 无法读取当前价格');
+    }
+
+    limitPrice = Math.floor(markPrice - 1000);
+    console.log(`[test] 当前价: ${markPrice} | 限价挂单价格: ${limitPrice}`);
     await priceInput.clear();
     await priceInput.fill(String(limitPrice));
     await page.waitForTimeout(500);
 
-    // 选择 BTC 单位，输入数量 0.01
+    // 选择 BTC 单位
     const qtyUnitBtn = page.locator('#tour-guide-place-order button[role="combobox"]');
     if (await qtyUnitBtn.isVisible({ timeout: 2000 }).catch(() => false)) {
       await qtyUnitBtn.click();
@@ -285,12 +345,13 @@ test.describe.serial('AsterDEX - H5 页面兼容测试', () => {
       await page.waitForTimeout(300);
     }
 
+    // 输入数量 0.01 BTC
     const qtyInput = page.locator('input[placeholder="数量"]');
     await qtyInput.clear();
     await qtyInput.fill('0.01');
     await page.waitForTimeout(500);
 
-    // 点击买入/做多
+    // 点击买入/做多（开多）
     await page.locator('button[type="submit"]').first().click();
     await page.waitForTimeout(500);
 
