@@ -53,9 +53,9 @@ test.describe.serial('AsterDEX - 期货市价委托', () => {
 
 
   // ========================================================
-  // 测试 1：市价开多 0.01 BTC
+  // 测试 1：市价开多 0.001 BTC
   // ========================================================
-  test('市价开多 BTC/USDT 0.01 BTC', async ({ loggedInPage: page }) => {
+  test('市价开多 BTC/USDT 0.001 BTC', async ({ loggedInPage: page }) => {
     await page.goto(process.env.EXCHANGE_URL!);
     await page.waitForLoadState('domcontentloaded');
     await page.waitForTimeout(3000);
@@ -75,7 +75,7 @@ test.describe.serial('AsterDEX - 期货市价委托', () => {
     // 输入数量
     const qtyInput = page.locator('input[placeholder="数量"]');
     await qtyInput.clear();
-    await qtyInput.fill('0.01');
+    await qtyInput.fill('0.001');
     await page.waitForTimeout(500);
 
     // 点击买入/做多
@@ -93,14 +93,14 @@ test.describe.serial('AsterDEX - 期货市价委托', () => {
 
     const position = page.locator('text=BTCUSDT').first();
     await expect(position).toBeVisible({ timeout: 10000 });
-    console.log('[test] ✅ 市价开多 0.01 BTC 成功，仓位已建立');
+    console.log('[test] ✅ 市价开多 0.001 BTC 成功，仓位已建立');
   });
 
 
   // ========================================================
-  // 测试 2：市价开空 0.01 BTC
+  // 测试 2：市价开空 0.001 BTC
   // ========================================================
-  test('市价开空 BTC/USDT 0.01 BTC', async ({ loggedInPage: page }) => {
+  test('市价开空 BTC/USDT 0.001 BTC', async ({ loggedInPage: page }) => {
     // 复用 test 1 已打开的页面，无需重新导航
 
     // 选择市价单
@@ -118,7 +118,7 @@ test.describe.serial('AsterDEX - 期货市价委托', () => {
     // 输入数量
     const qtyInput = page.locator('input[placeholder="数量"]');
     await qtyInput.clear();
-    await qtyInput.fill('0.01');
+    await qtyInput.fill('0.001');
     await page.waitForTimeout(500);
 
     // 点击卖出/做空（第二个 submit 按钮）
@@ -129,7 +129,7 @@ test.describe.serial('AsterDEX - 期货市价委托', () => {
     await page.waitForTimeout(2000);
 
     await checkToast(page, ['下单成功', '委托成功', '成功提交', 'Order placed', 'Success'], '市价开空下单');
-    console.log('[test] ✅ 市价开空 0.01 BTC 成功');
+    console.log('[test] ✅ 市价开空 0.001 BTC 成功');
   });
 
 

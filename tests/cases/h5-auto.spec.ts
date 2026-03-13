@@ -273,7 +273,7 @@ test.describe.serial('AsterDEX - H5 页面兼容测试', () => {
   // H5 布局没有 dt:has-text("标记价格")，
   // 改为先选"限价"再读取价格输入框的预填值（交易所自动填入当前价）
   // ========================================================
-  test('H5 移动端限价挂单 BTC/USDT 0.01 BTC', async ({ loggedInPage: page }) => {
+  test('H5 移动端限价挂单 BTC/USDT 0.001 BTC', async ({ loggedInPage: page }) => {
     await page.setViewportSize(MOBILE_VIEWPORT);
 
     await page.goto(process.env.EXCHANGE_URL!);
@@ -345,10 +345,10 @@ test.describe.serial('AsterDEX - H5 页面兼容测试', () => {
       await page.waitForTimeout(300);
     }
 
-    // 输入数量 0.01 BTC
+    // 输入数量 0.001 BTC
     const qtyInput = page.locator('input[placeholder="数量"]');
     await qtyInput.clear();
-    await qtyInput.fill('0.01');
+    await qtyInput.fill('0.001');
     await page.waitForTimeout(500);
 
     // 点击买入/做多（开多）
@@ -368,7 +368,7 @@ test.describe.serial('AsterDEX - H5 页面兼容测试', () => {
 
     const order = page.locator('text=BTCUSDT').first();
     await expect(order).toBeVisible({ timeout: 5000 });
-    console.log(`[test] ✅ H5 限价单已出现在当前委托，价格: ${limitPrice}，数量: 0.01 BTC`);
+    console.log(`[test] ✅ H5 限价单已出现在当前委托，价格: ${limitPrice}，数量: 0.001 BTC`);
 
     await page.screenshot({ path: `test-results/h5-limit-order-placed-${Date.now()}.png` });
   });

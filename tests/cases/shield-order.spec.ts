@@ -90,7 +90,7 @@ test.describe.serial('AsterDEX - Shield 模式交易', () => {
   // ========================================================
   // 测试 2：Shield 模式限价买入
   // ========================================================
-  test('Shield 模式限价买入 0.01 BTC', async ({ loggedInPage: page }) => {
+  test('Shield 模式限价买入 0.001 BTC', async ({ loggedInPage: page }) => {
     // 复用 test 1 已打开的页面，无需重新导航
 
     // 选择限价单
@@ -110,7 +110,7 @@ test.describe.serial('AsterDEX - Shield 模式交易', () => {
 
     const qtyInput = page.locator('input[placeholder="数量"]');
     await qtyInput.clear();
-    await qtyInput.fill('0.01');
+    await qtyInput.fill('0.001');
     await page.waitForTimeout(500);
 
     await page.locator('button[type="submit"]').first().click();

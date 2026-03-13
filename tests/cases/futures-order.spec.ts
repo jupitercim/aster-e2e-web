@@ -53,7 +53,7 @@ test.describe.serial('AsterDEX - 期货合约交易', () => {
   }
 
 
-  test('BTC/USDT 限价开多 0.01 BTC', async ({ loggedInPage: page }) => {
+  test('BTC/USDT 限价开多 0.001 BTC', async ({ loggedInPage: page }) => {
     // 1. 进入合约交易页
     await page.goto(process.env.EXCHANGE_URL!);
     await page.waitForLoadState('networkidle');
@@ -63,16 +63,23 @@ test.describe.serial('AsterDEX - 期货合约交易', () => {
     await page.locator('button:not([role="combobox"]):text("限价")').click();
     await page.waitForTimeout(1500);
 
-    // 3. 输入价格（低于市价，挂单不会立即成交）
+    // 3. 读取 Mark Price，输入价格（mark price - 1000，挂单不会立即成交）
+    const markPriceEl = page.locator('dt:has-text("标记价格")').locator('..').locator('dd').first();
+    await expect(markPriceEl).toBeVisible({ timeout: 10000 });
+    const markPriceText = await markPriceEl.textContent();
+    const markPrice = parseFloat((markPriceText || '0').replace(/,/g, '').trim());
+    const limitOrderPrice = Math.floor(markPrice - 1000);
+    console.log(`[test] Mark Price: ${markPrice} | 限价单价格: ${limitOrderPrice}`);
+
     const priceInput = page.locator('input[placeholder="价格"]');
     await priceInput.clear();
-    await priceInput.fill('65000');
+    await priceInput.fill(String(limitOrderPrice));
     await page.waitForTimeout(1500);
 
-    // 4. 输入数量 0.01 BTC
+    // 4. 输入数量 0.001 BTC
     const qtyInput = page.locator('input[placeholder="数量"]');
     await qtyInput.clear();
-    await qtyInput.fill('0.01');
+    await qtyInput.fill('0.001');
     await page.waitForTimeout(500);
 
     // 5. 点击买入/做多（第一个 submit 按钮）
@@ -94,7 +101,7 @@ test.describe.serial('AsterDEX - 期货合约交易', () => {
 
     const order = page.locator('text=BTCUSDT').first();
     await expect(order).toBeVisible({ timeout: 1500 });
-    console.log('[test] ✅ 限价开多 0.01 BTC 下单成功');
+    console.log('[test] ✅ 限价开多 0.001 BTC 下单成功');
   });
 
   test('BTC/USDT 市价开多', async ({ loggedInPage: page }) => {
@@ -107,7 +114,7 @@ test.describe.serial('AsterDEX - 期货合约交易', () => {
     // 2. 输入数量
     const qtyInput = page.locator('input[placeholder="数量"]');
     await qtyInput.clear();
-    await qtyInput.fill('0.01');
+    await qtyInput.fill('0.001');
     await page.waitForTimeout(500);
 
     // 3. 点击开多（第一个 submit 按钮）

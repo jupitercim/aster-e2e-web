@@ -58,7 +58,7 @@ test.describe.serial('AsterDEX - 期货限价委托', () => {
   // ========================================================
   // 测试 1：限价挂单（买入/做多）
   // ========================================================
-  test('限价挂单 BTC/USDT 0.01 BTC（mark price - 1000）', async ({ loggedInPage: page }) => {
+  test('限价挂单 BTC/USDT 0.001 BTC（mark price - 1000）', async ({ loggedInPage: page }) => {
     await page.goto(process.env.EXCHANGE_URL!);
     await page.waitForLoadState('domcontentloaded');
     await page.waitForTimeout(3000);
@@ -92,7 +92,7 @@ test.describe.serial('AsterDEX - 期货限价委托', () => {
 
     const qtyInput = page.locator('input[placeholder="数量"]');
     await qtyInput.clear();
-    await qtyInput.fill('0.01');
+    await qtyInput.fill('0.001');
     await page.waitForTimeout(500);
 
     // 点击买入/做多
@@ -110,7 +110,7 @@ test.describe.serial('AsterDEX - 期货限价委托', () => {
 
     const order = page.locator('text=BTCUSDT').first();
     await expect(order).toBeVisible({ timeout: 5000 });
-    console.log(`[test] ✅ 限价单已出现在当前委托，价格: ${limitPrice}，数量: 0.01 BTC`);
+    console.log(`[test] ✅ 限价单已出现在当前委托，价格: ${limitPrice}，数量: 0.001 BTC`);
   });
 
 
@@ -198,11 +198,11 @@ test.describe.serial('AsterDEX - 期货限价委托', () => {
       .filter(v => !isNaN(v) && v > 0);
 
     const priceMatched = limitPrice > 0 && numericValues.some(v => v === limitPrice);
-    const qtyMatched = rowText.includes('0.01');
+    const qtyMatched = rowText.includes('0.001');
 
     console.log(`[test] 行内数值: ${numericValues.join(', ')}`);
     console.log(`[test] 期望价格: ${limitPrice} → ${priceMatched ? '✅ 匹配' : '⚠️ 未匹配'}`);
-    console.log(`[test] 期望数量: 0.01 BTC → ${qtyMatched ? '✅ 匹配' : '⚠️ 未匹配'}`);
+    console.log(`[test] 期望数量: 0.001 BTC → ${qtyMatched ? '✅ 匹配' : '⚠️ 未匹配'}`);
   });
 
 
