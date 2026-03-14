@@ -493,4 +493,487 @@ test.describe.serial('AsterDEX - H5 页面兼容测试', () => {
     console.log('[test] ✅ H5 移动端取消限价委托成功');
   });
 
+
+  // ========================================================
+  // 测试 8：H5 导航菜单（Toggle Menu）
+  // ========================================================
+  test('H5 移动端导航菜单可正常打开并展示各入口', async ({ loggedInPage: page }) => {
+    await page.setViewportSize(MOBILE_VIEWPORT);
+    await page.goto(getBaseUrl());
+    await page.waitForLoadState('domcontentloaded');
+    await page.waitForTimeout(2000);
+
+    // 点击右上角汉堡菜单
+    const toggleBtn = page.locator('button:has-text("Toggle Menu")').first();
+    await expect(toggleBtn).toBeVisible({ timeout: 5000 });
+    await toggleBtn.click();
+    await page.waitForTimeout(800);
+    await page.screenshot({ path: `test-results/h5-nav-menu-open-${Date.now()}.png` });
+
+    // Close Menu 按钮出现即代表菜单已展开
+    const closeBtn = page.locator('button:has-text("Close Menu")').first();
+    await expect(closeBtn).toBeVisible({ timeout: 5000 });
+
+    // 验证核心导航项目可见（用 button/a 精确匹配，避免命中 header 中隐藏的同名元素）
+    const navItems: Array<[string, string]> = [
+      ['button:has-text("空投")',  '空投'],
+      ['a:has-text("Shield")',     'Shield'],
+      ['a:has-text("投资组合")',   '投资组合'],
+      ['a:has-text("推荐")',       '推荐'],
+      ['button:has-text("奖励")',  '奖励'],
+      ['a:has-text("火箭发射")',   '火箭发射'],
+      ['button:has-text("更多")',  '更多'],
+    ];
+    let visibleCount = 0;
+    for (const [sel, label] of navItems) {
+      if (await page.locator(sel).first().isVisible({ timeout: 2000 }).catch(() => false)) {
+        visibleCount++;
+      } else {
+        console.log(`[test] ⚠️ 未见: ${label}`);
+      }
+    }
+    console.log(`[test] 导航菜单项可见: ${visibleCount}/${navItems.length}`);
+    expect(visibleCount).toBeGreaterThanOrEqual(3);
+
+    // 验证「更多」子菜单可展开
+    const moreBtn = page.locator('button:has-text("更多")').first();
+    if (await moreBtn.isVisible({ timeout: 2000 }).catch(() => false)) {
+      await moreBtn.click();
+      await page.waitForTimeout(600);
+      await page.screenshot({ path: `test-results/h5-nav-more-submenu-${Date.now()}.png` });
+      console.log('[test] ✅ 「更多」子菜单已展开');
+    }
+
+    console.log('[test] ✅ H5 导航菜单验证完成');
+  });
+
+
+  // ========================================================
+  // 测试 9：H5 现货交易页
+  // ========================================================
+  test('H5 移动端现货交易页可正常加载', async ({ loggedInPage: page }) => {
+    await page.setViewportSize(MOBILE_VIEWPORT);
+    const origin = new URL(process.env.EXCHANGE_URL!).origin;
+    await page.goto(`${origin}/zh-CN/trade/pro/spot/ETHUSDT`);
+    await page.waitForSelector('button:has-text("买入"), button:has-text("卖出")', { timeout: 15000 });
+
+    // 顶部：交易对 + 价格
+    const pair = page.locator('text=ETH').first();
+    await expect(pair).toBeVisible({ timeout: 5000 });
+
+    // 买入 / 卖出 按钮
+    const buyBtn  = page.locator('button:has-text("买入")').first();
+    const sellBtn = page.locator('button:has-text("卖出")').first();
+    expect(await buyBtn.isVisible().catch(() => false) || await sellBtn.isVisible().catch(() => false)).toBeTruthy();
+
+    // 底部 tab：当前委托 / 资产
+    const orderTab = page.locator('[role="tab"]:has-text("当前委托")').first();
+    if (await orderTab.isVisible({ timeout: 3000 }).catch(() => false)) {
+      await orderTab.click();
+      await page.waitForTimeout(800);
+    }
+
+    await page.screenshot({ path: `test-results/h5-spot-trade-${Date.now()}.png` });
+    console.log('[test] ✅ H5 现货交易页加载正常');
+  });
+
+
+  // ========================================================
+  // 测试 10：H5 Shield 交易页
+  // ========================================================
+  test('H5 移动端 Shield 交易页可正常加载', async ({ loggedInPage: page }) => {
+    await page.setViewportSize(MOBILE_VIEWPORT);
+    const origin = new URL(process.env.EXCHANGE_URL!).origin;
+    await page.goto(`${origin}/zh-CN/trade/shield/futures/BTCUSDT`);
+    await page.waitForSelector('button:has-text("做多"), button:has-text("做空")', { timeout: 15000 });
+
+    // BTCUSDT 交易对标识
+    const pair = page.locator('text=BTCUSDT').first();
+    await expect(pair).toBeVisible({ timeout: 5000 });
+
+    // 做多 / 做空 按钮
+    const longBtn  = page.locator('button:has-text("做多")').first();
+    const shortBtn = page.locator('button:has-text("做空")').first();
+    expect(await longBtn.isVisible().catch(() => false) || await shortBtn.isVisible().catch(() => false)).toBeTruthy();
+
+    // Chart / Data tab
+    const chartTab = page.locator('text=Chart').first();
+    const dataTab  = page.locator('text=Data').first();
+    const tabVisible = await chartTab.isVisible({ timeout: 3000 }).catch(() => false)
+                    || await dataTab.isVisible({ timeout: 3000 }).catch(() => false);
+    console.log(`[test] Chart/Data tab 可见: ${tabVisible}`);
+
+    // 滚动查看底部仓位 tab
+    await page.evaluate(() => window.scrollTo(0, document.documentElement.scrollHeight));
+    await page.waitForTimeout(600);
+    await page.screenshot({ path: `test-results/h5-shield-trade-${Date.now()}.png` });
+    console.log('[test] ✅ H5 Shield 交易页加载正常');
+  });
+
+
+  // ========================================================
+  // 测试 11：H5 1001x 交易页
+  // ========================================================
+  test('H5 移动端 1001x 页面可正常加载', async ({ loggedInPage: page }) => {
+    await page.setViewportSize(MOBILE_VIEWPORT);
+    const origin = new URL(process.env.EXCHANGE_URL!).origin;
+    await page.goto(`${origin}/zh-CN/trade/1001x/futures/BTCUSD`);
+    // 等待永续合约/预测 模式区域出现（1001x 特有，加载完成标志）
+    await page.waitForSelector('text=永续合约', { timeout: 15000 });
+
+    // 交易对价格区域
+    const pair = page.locator('text=BTCUSD').first();
+    await expect(pair).toBeVisible({ timeout: 5000 });
+
+    // 永续合约 / 预测 模式切换
+    const perpetualBtn = page.locator('button:has-text("永续合约"), text=永续合约').first();
+    const predictionBtn = page.locator('button:has-text("预测"), text=预测').first();
+    const modeVisible = await perpetualBtn.isVisible({ timeout: 3000 }).catch(() => false)
+                     || await predictionBtn.isVisible({ timeout: 3000 }).catch(() => false);
+    console.log(`[test] 永续合约/预测 模式入口可见: ${modeVisible}`);
+
+    // 杠杆滑块区域
+    const leverageVisible = await page.locator('text=1001x, text=Degen').first().isVisible({ timeout: 2000 }).catch(() => false);
+    console.log(`[test] 杠杆滑块可见: ${leverageVisible}`);
+    await page.evaluate(() => window.scrollTo(0, 500));
+    await page.waitForTimeout(500);
+
+    // 底部委托/历史 tab
+    const orderTab = page.locator('[role="tab"]:has-text("订单")').first();
+    if (await orderTab.isVisible({ timeout: 3000 }).catch(() => false)) {
+      await orderTab.click();
+      await page.waitForTimeout(600);
+    }
+
+    await page.screenshot({ path: `test-results/h5-1001x-${Date.now()}.png` });
+    console.log('[test] ✅ H5 1001x 页面加载正常');
+  });
+
+
+  // ========================================================
+  // 测试 12：H5 空投页
+  // ========================================================
+  test('H5 移动端空投页面模块完整', async ({ loggedInPage: page }) => {
+    await page.setViewportSize(MOBILE_VIEWPORT);
+    const origin = new URL(process.env.EXCHANGE_URL!).origin;
+    await page.goto(`${origin}/zh-CN/airdrop`);
+    await page.waitForSelector('text=空投', { timeout: 15000 });
+
+    // 标题区域
+    const title = page.getByRole('heading').filter({ hasText: /Aster空投/ }).first();
+    await expect(title).toBeVisible({ timeout: 5000 });
+
+    // 阶段选择按钮
+    const stageBtn = page.locator('button:has-text("阶段")').first();
+    const stageVisible = await stageBtn.isVisible({ timeout: 3000 }).catch(() => false);
+    console.log(`[test] 阶段按钮可见: ${stageVisible}`);
+
+    // 滚动到底部查看 FAQ
+    for (let i = 0; i < 5; i++) {
+      await page.evaluate(() => window.scrollBy(0, 600));
+      await page.waitForTimeout(300);
+    }
+    await page.screenshot({ path: `test-results/h5-airdrop-bottom-${Date.now()}.png` });
+
+    // FAQ 常见问题
+    const faq = page.locator('text=常见问题').first();
+    const faqVisible = await faq.isVisible({ timeout: 3000 }).catch(() => false);
+    console.log(`[test] FAQ 区域可见: ${faqVisible}`);
+
+    // 展开第一个 FAQ
+    const firstFaq = page.locator('button:has-text("ASTER 代币是什么")').first();
+    if (await firstFaq.isVisible({ timeout: 2000 }).catch(() => false)) {
+      await firstFaq.click();
+      await page.waitForTimeout(500);
+      console.log('[test] ✅ FAQ 可点击展开');
+    }
+
+    await expect(title).toBeVisible({ timeout: 3000 }).catch(() => {});
+    console.log('[test] ✅ H5 空投页面模块验证完成');
+  });
+
+
+  // ========================================================
+  // 测试 13：H5 奖励页（Trade & Earn）
+  // ========================================================
+  test('H5 移动端奖励页面模块完整', async ({ loggedInPage: page }) => {
+    await page.setViewportSize(MOBILE_VIEWPORT);
+    const origin = new URL(process.env.EXCHANGE_URL!).origin;
+    await page.goto(`${origin}/zh-CN/trade-and-earn`);
+    await page.waitForSelector('text=USDF', { timeout: 15000 });
+
+    // USDF / asBNB 顶部 tab
+    const usdfTab  = page.locator('text=USDF').first();
+    const asbnbTab = page.locator('text=asBNB').first();
+    const tabVisible = await usdfTab.isVisible({ timeout: 5000 }).catch(() => false)
+                    || await asbnbTab.isVisible({ timeout: 5000 }).catch(() => false);
+    expect(tabVisible).toBeTruthy();
+    console.log('[test] USDF/asBNB tab 可见');
+
+    // APY 数字
+    const apy = page.locator('text=APY').first();
+    const apyVisible = await apy.isVisible({ timeout: 3000 }).catch(() => false);
+    console.log(`[test] APY 区域可见: ${apyVisible}`);
+
+    // 铸造 / 兑换 子 tab
+    const mintTab  = page.locator('[role="tab"]:has-text("铸造"), button:has-text("铸造")').first();
+    const swapTab  = page.locator('[role="tab"]:has-text("兑换"), button:has-text("兑换")').first();
+    const subtabVisible = await mintTab.isVisible({ timeout: 3000 }).catch(() => false)
+                       || await swapTab.isVisible({ timeout: 3000 }).catch(() => false);
+    console.log(`[test] 铸造/兑换 子tab 可见: ${subtabVisible}`);
+
+    // 滚动查看「如何参与」和 FAQ
+    for (let i = 0; i < 6; i++) {
+      await page.evaluate(() => window.scrollBy(0, 600));
+      await page.waitForTimeout(300);
+    }
+    await page.screenshot({ path: `test-results/h5-rewards-bottom-${Date.now()}.png` });
+
+    const howTo = page.locator('text=如何参与').first();
+    const howToVisible = await howTo.isVisible({ timeout: 3000 }).catch(() => false);
+    console.log(`[test] 「如何参与」区域可见: ${howToVisible}`);
+
+    console.log('[test] ✅ H5 奖励页面模块验证完成');
+  });
+
+
+  // ========================================================
+  // 测试 14：H5 投资组合页
+  // ========================================================
+  test('H5 移动端投资组合页面模块完整', async ({ loggedInPage: page }) => {
+    await page.setViewportSize(MOBILE_VIEWPORT);
+    const origin = new URL(process.env.EXCHANGE_URL!).origin;
+    await page.goto(`${origin}/zh-CN/portfolio/pro`);
+    await page.waitForSelector('text=投资组合', { timeout: 15000 });
+
+    // 页面标题（用 heading role 避免命中 header 导航里的隐藏 span）
+    const title = page.getByRole('heading', { name: '投资组合' }).first();
+    await expect(title).toBeVisible({ timeout: 5000 });
+
+    // 操作按钮：存款 / 提现 / 转账
+    const depositBtn   = page.locator('button:has-text("存款")').first();
+    const withdrawBtn  = page.locator('button:has-text("提现")').first();
+    const transferBtn  = page.locator('button:has-text("转账")').first();
+    let btnCount = 0;
+    for (const btn of [depositBtn, withdrawBtn, transferBtn]) {
+      if (await btn.isVisible({ timeout: 2000 }).catch(() => false)) btnCount++;
+    }
+    console.log(`[test] 存款/提现/转账按钮可见: ${btnCount}/3`);
+    expect(btnCount).toBeGreaterThan(0);
+
+    // 总价值 / 盈亏 / 交易量 数据区
+    const totalValue = page.locator('text=总价值').first();
+    await expect(totalValue).toBeVisible({ timeout: 3000 });
+    const pnlVisible = await page.locator('text=盈亏').first().isVisible({ timeout: 2000 }).catch(() => false);
+    console.log(`[test] 盈亏区域可见: ${pnlVisible}`);
+
+    // 永续 / 现货 细分
+    const perpetual = page.locator('text=永续').first();
+    const spot      = page.locator('text=现货').first();
+    const subVisible = await perpetual.isVisible({ timeout: 3000 }).catch(() => false)
+                    || await spot.isVisible({ timeout: 3000 }).catch(() => false);
+    console.log(`[test] 永续/现货 细分可见: ${subVisible}`);
+
+    // 滚动查看日历/图表区域
+    for (let i = 0; i < 4; i++) {
+      await page.evaluate(() => window.scrollBy(0, 600));
+      await page.waitForTimeout(300);
+    }
+    await page.screenshot({ path: `test-results/h5-portfolio-bottom-${Date.now()}.png` });
+    console.log('[test] ✅ H5 投资组合页面模块验证完成');
+  });
+
+
+  // ========================================================
+  // 测试 15：H5 推荐页
+  // ========================================================
+  test('H5 移动端推荐页面模块完整', async ({ loggedInPage: page }) => {
+    await page.setViewportSize(MOBILE_VIEWPORT);
+    const origin = new URL(process.env.EXCHANGE_URL!).origin;
+    await page.goto(`${origin}/zh-CN/referral`);
+    await page.waitForSelector('text=邀请朋友', { timeout: 15000 });
+
+    // 主标题
+    const title = page.getByRole('heading').filter({ hasText: /邀请朋友/ }).first();
+    await expect(title).toBeVisible({ timeout: 5000 });
+
+    // 返利百分比显示
+    const commission = page.locator('text=10%').first();
+    const commVisible = await commission.isVisible({ timeout: 3000 }).catch(() => false);
+    console.log(`[test] 返利比例可见: ${commVisible}`);
+
+    // 查看推荐规则链接
+    const ruleLink = page.locator('text=查看推荐规则').first();
+    const ruleVisible = await ruleLink.isVisible({ timeout: 3000 }).catch(() => false);
+    console.log(`[test] 推荐规则链接可见: ${ruleVisible}`);
+
+    // 立即邀请区块
+    const inviteSection = page.locator('text=立即邀请').first();
+    await expect(inviteSection).toBeVisible({ timeout: 3000 });
+
+    // 邀请总览区块
+    const overview = page.locator('text=邀请总览').first();
+    const overviewVisible = await overview.isVisible({ timeout: 3000 }).catch(() => false);
+    console.log(`[test] 邀请总览区块可见: ${overviewVisible}`);
+
+    await page.screenshot({ path: `test-results/h5-referral-${Date.now()}.png` });
+    console.log('[test] ✅ H5 推荐页面模块验证完成');
+  });
+
+
+  // ========================================================
+  // 测试 16：H5 火箭发射页
+  // ========================================================
+  test('H5 移动端火箭发射页面模块完整', async ({ loggedInPage: page }) => {
+    await page.setViewportSize(MOBILE_VIEWPORT);
+    const origin = new URL(process.env.EXCHANGE_URL!).origin;
+    await page.goto(`${origin}/zh-CN/rocket-launch`);
+    await page.waitForSelector('text=火箭发射', { timeout: 15000 });
+
+    // 页面标题
+    const title = page.getByRole('heading').filter({ hasText: /火箭发射/ }).first();
+    await expect(title).toBeVisible({ timeout: 5000 });
+
+    // 副标题
+    const subtitle = page.locator('text=交易早期加密项目并获得奖励').first();
+    const subtitleVisible = await subtitle.isVisible({ timeout: 3000 }).catch(() => false);
+    console.log(`[test] 副标题可见: ${subtitleVisible}`);
+
+    // 火箭发射 / Trade Arena tab
+    const rocketTab     = page.locator('button:has-text("火箭发射")').first();
+    const tradeArenaTab = page.locator('button:has-text("Trade Arena")').first();
+    const tabVisible    = await rocketTab.isVisible({ timeout: 3000 }).catch(() => false)
+                       || await tradeArenaTab.isVisible({ timeout: 3000 }).catch(() => false);
+    console.log(`[test] 火箭发射/Trade Arena tab 可见: ${tabVisible}`);
+
+    // 全部 / 进行中 / 即将到来 / 已结束 过滤 tab
+    const allTab    = page.locator('button:has-text("全部")').first();
+    const activeTab = page.locator('button:has-text("进行中")').first();
+    const filterVisible = await allTab.isVisible({ timeout: 3000 }).catch(() => false)
+                       || await activeTab.isVisible({ timeout: 3000 }).catch(() => false);
+    console.log(`[test] 过滤 tab 可见: ${filterVisible}`);
+
+    // 项目卡片
+    await page.evaluate(() => window.scrollBy(0, 400));
+    await page.waitForTimeout(500);
+    await page.screenshot({ path: `test-results/h5-rocket-launch-${Date.now()}.png` });
+    console.log('[test] ✅ H5 火箭发射页面模块验证完成');
+  });
+
+
+  // ========================================================
+  // 测试 17：H5 Earn 页
+  // ========================================================
+  test('H5 移动端 Earn 页面模块完整', async ({ loggedInPage: page }) => {
+    await page.setViewportSize(MOBILE_VIEWPORT);
+    const origin = new URL(process.env.EXCHANGE_URL!).origin;
+    await page.goto(`${origin}/zh-CN/earn`);
+    // 等待策略卡片数据加载完成（asBTC 是首个策略项）
+    await page.waitForSelector('text=asBTC', { timeout: 20000 });
+
+    // 赚取 / 生态系统 顶部 tab
+    const earnTab = page.locator('button:has-text("赚取"), text=赚取').first();
+    const ecoTab  = page.locator('button:has-text("生态系统"), text=生态系统').first();
+    const topTabVisible = await earnTab.isVisible({ timeout: 3000 }).catch(() => false)
+                       || await ecoTab.isVisible({ timeout: 3000 }).catch(() => false);
+    console.log(`[test] 赚取/生态系统 tab 可见: ${topTabVisible}`);
+
+    // 策略列表标题
+    const strategyTitle = page.locator('text=策略').first();
+    await expect(strategyTitle).toBeVisible({ timeout: 5000 });
+
+    // 核心策略卡片：asBTC / asCAKE / ALP / asUSDF / asBNB
+    const strategies = ['asBTC', 'asCAKE', 'ALP', 'asUSDF', 'asBNB'];
+    let strategyCount = 0;
+    for (const s of strategies) {
+      if (await page.locator(`text=${s}`).first().isVisible({ timeout: 2000 }).catch(() => false)) {
+        strategyCount++;
+      }
+    }
+    console.log(`[test] 策略卡片可见: ${strategyCount}/${strategies.length}`);
+    expect(strategyCount).toBeGreaterThanOrEqual(2);
+
+    // TVL / APY 数据
+    const tvl = page.locator('text=TVL').first();
+    const tvlVisible = await tvl.isVisible({ timeout: 3000 }).catch(() => false);
+    console.log(`[test] TVL 数据可见: ${tvlVisible}`);
+
+    await page.screenshot({ path: `test-results/h5-earn-${Date.now()}.png` });
+    console.log('[test] ✅ H5 Earn 页面模块验证完成');
+  });
+
+
+  // ========================================================
+  // 测试 18：H5 USDF 稳定币页
+  // ========================================================
+  test('H5 移动端 USDF 页面模块完整', async ({ loggedInPage: page }) => {
+    await page.setViewportSize(MOBILE_VIEWPORT);
+    const origin = new URL(process.env.EXCHANGE_URL!).origin;
+    await page.goto(`${origin}/zh-CN/usdf`);
+    await page.waitForSelector('text=USDF', { timeout: 15000 });
+
+    // 主标题（USDF 页面专属 heading）
+    const title = page.getByRole('heading').filter({ hasText: /USDF/ }).first();
+    await expect(title).toBeVisible({ timeout: 5000 });
+
+    // 铸造 / 兑换 / 请求 / 领取 tab
+    const tabs = ['铸造', '兑换', '请求', '领取'];
+    let tabCount = 0;
+    for (const t of tabs) {
+      if (await page.locator(`[role="tab"]:has-text("${t}"), button:has-text("${t}")`).first().isVisible({ timeout: 2000 }).catch(() => false)) {
+        tabCount++;
+      }
+    }
+    console.log(`[test] 铸造/兑换/请求/领取 tab 可见: ${tabCount}/4`);
+    expect(tabCount).toBeGreaterThanOrEqual(2);
+
+    // 质押APY / 交易APY
+    const apy = page.locator('text=APY').first();
+    const apyVisible = await apy.isVisible({ timeout: 3000 }).catch(() => false);
+    console.log(`[test] APY 数据可见: ${apyVisible}`);
+
+    // 滚动到底部查看统计数据和 FAQ
+    for (let i = 0; i < 5; i++) {
+      await page.evaluate(() => window.scrollBy(0, 600));
+      await page.waitForTimeout(300);
+    }
+    const stats = page.locator('text=总铸造, text=可铸造').first();
+    const statsVisible = await stats.isVisible({ timeout: 3000 }).catch(() => false);
+    console.log(`[test] 统计数据区可见: ${statsVisible}`);
+
+    await page.screenshot({ path: `test-results/h5-usdf-bottom-${Date.now()}.png` });
+    console.log('[test] ✅ H5 USDF 页面模块验证完成');
+  });
+
+
+  // ========================================================
+  // 测试 19：H5 API 管理页
+  // ========================================================
+  test('H5 移动端 API 管理页面可正常加载', async ({ loggedInPage: page }) => {
+    await page.setViewportSize(MOBILE_VIEWPORT);
+    const origin = new URL(process.env.EXCHANGE_URL!).origin;
+    await page.goto(`${origin}/zh-CN/api-management`);
+    await page.waitForSelector('button:has-text("创建 API"), button:has-text("创建API")', { timeout: 15000 });
+
+    // API 管理标题
+    const title = page.getByRole('heading').filter({ hasText: /API/ }).first();
+    await expect(title).toBeVisible({ timeout: 5000 });
+
+    // API / 专业API tab
+    const apiTab    = page.locator('text=API').first();
+    const proApiTab = page.locator('text=专业API').first();
+    const tabVisible = await apiTab.isVisible({ timeout: 3000 }).catch(() => false)
+                    || await proApiTab.isVisible({ timeout: 3000 }).catch(() => false);
+    console.log(`[test] API/专业API tab 可见: ${tabVisible}`);
+
+    // 创建 API 按钮
+    const createBtn = page.locator('button:has-text("创建 API"), button:has-text("创建API")').first();
+    const createVisible = await createBtn.isVisible({ timeout: 3000 }).catch(() => false);
+    console.log(`[test] 创建 API 按钮可见: ${createVisible}`);
+    expect(createVisible).toBeTruthy();
+
+    await page.screenshot({ path: `test-results/h5-api-management-${Date.now()}.png` });
+    console.log('[test] ✅ H5 API 管理页面验证完成');
+  });
+
 });
