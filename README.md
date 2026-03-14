@@ -178,12 +178,12 @@ npx playwright codegen https://your-exchange.com
 | Module | Content | Spec Name | Owner   |
 |--------|---------|-----------|---------|
 | HealthCheck | 检查 web 系统的健康状况 | `health-check.spec.ts` |         |
-| Future Limit Order | Limit Order / 隐藏订单 / 只减仓 | `future-limit-order.spec.ts` |         |
+| Future Limit Order | Limit Order / 隐藏订单 / 只减仓 | `future-limit-order.spec.ts` | andros  |
 | Future Market Order | Market Order 的自动化测试 | `future-market-order.spec.ts` | Kevin.c |
 | Future Other Order | 止盈止损 / TWAP / 资金费率 | `future-other-order.spec.ts` |         |
 | Spot Order | 现货交易 / 切换交易对 / 历史成交 | `spot-order.spec.ts` | Kevin.c |
 | Shield Order | Shield 模式交易 | `shield-order.spec.ts` |         |
-| Grid Trading | 网格交易策略 | `grid-trading.spec.ts` |         |
+| Grid Trading | 网格交易策略 | `grid-trading.spec.ts` |  andros |
 | 1001x | 高杠杆 1001x 交易 / 预测模式 | `1001x.spec.ts` |         |
 | USDF | USDF 稳定币铸造 / 兑换 | `usdf.spec.ts` | Kevin.c |
 | Earn | 赚取页面 / 策略列表 / 铸造 | `earn.spec.ts` |         |
@@ -195,7 +195,7 @@ npx playwright codegen https://your-exchange.com
 | Portfolio | Portfolio 页面 / 资产 Tab / 总资产数值 | `portfolio.spec.ts` |         |
 | Rewards | 奖励 / 积分排行榜 / 规则展开 | `rewards.spec.ts` |         |
 | More Products | More Products | `more-products.spec.ts` |         |
-| More Resources | More Resources | `more-resources.spec.ts` |         |
-| Rocket Launch | Rocket Launch 页面测试 | `rocket-launch.spec.ts` |         |
-| H5 Auto Test | H5 页面兼容测试 | `h5-auto.spec.ts` |         |
+| More Resources | More Resources | `more-resources.spec.ts` |  andors  |
+| Rocket Launch | Rocket Launch 页面测试 | `rocket-launch.spec.ts` | andros |
+| H5 Auto Test | H5 页面兼容测试 | `h5-auto.spec.ts` | andros  |
 | Settings | Settings / 语言切换 / API 管理 | `settings.spec.ts` |         |
