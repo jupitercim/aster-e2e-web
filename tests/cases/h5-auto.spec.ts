@@ -324,6 +324,52 @@ test.describe.serial('AsterDEX - H5 页面兼容测试', () => {
       if (markPrice > 0) console.log(`[test] H5 布局 - 从价格输入框读取当前价: ${markPrice}`);
     }
 
+    // 方式3：点击价格输入框触发自动填充后再读
+    if ((!markPrice || isNaN(markPrice) || markPrice <= 0) && isPriceVisible) {
+      await priceInput.click();
+      await page.waitForTimeout(1500);
+      const val = await priceInput.inputValue();
+      markPrice = parseFloat(val.replace(/,/g, '').trim() || '0');
+      if (markPrice > 0) console.log(`[test] H5 布局 - 点击输入框后读取当前价: ${markPrice}`);
+    }
+
+    // 方式4：从页面 ticker 区域可见价格文字中提取
+    if (!markPrice || isNaN(markPrice) || markPrice <= 0) {
+      const tickerSelectors = [
+        '[class*="lastPrice"]',
+        '[class*="last-price"]',
+        '[class*="markPrice"]',
+        '[class*="mark-price"]',
+        '[class*="indexPrice"]',
+      ];
+      for (const sel of tickerSelectors) {
+        const el = page.locator(sel).first();
+        if (await el.isVisible({ timeout: 1000 }).catch(() => false)) {
+          const text = await el.textContent();
+          const val = parseFloat((text || '').replace(/,/g, '').trim());
+          if (val > 1000) {
+            markPrice = val;
+            console.log(`[test] 方式4 - 从 ${sel} 读取价格: ${markPrice}`);
+            break;
+          }
+        }
+      }
+    }
+
+    // 方式5：从页面所有可见文字中匹配 BTC 价格范围（10000~200000）
+    if (!markPrice || isNaN(markPrice) || markPrice <= 0) {
+      const allText = await page.evaluate(() => document.body.innerText);
+      const matches = allText.match(/\b([1-9]\d{4,5}(?:\.\d+)?)\b/g) || [];
+      for (const m of matches) {
+        const val = parseFloat(m.replace(/,/g, ''));
+        if (val >= 10000 && val <= 200000) {
+          markPrice = val;
+          console.log(`[test] 方式5 - 从页面文字提取价格: ${markPrice}`);
+          break;
+        }
+      }
+    }
+
     if (!markPrice || isNaN(markPrice) || markPrice <= 0) {
       throw new Error('[test] ❌ 无法读取当前价格');
     }

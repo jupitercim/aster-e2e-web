@@ -61,8 +61,8 @@ test.describe.serial('AsterDEX - 推荐（Referral）', () => {
     }
 
     if (!copyBtn) {
-      // 备用：找复制图标按钮（通常在链接旁边）
-      const iconBtn = page.locator('button svg').first();
+      // 备用：在主内容区域（排除 header）找带 SVG 的复制图标按钮
+      const iconBtn = page.locator('main button svg, [role="main"] button svg, section button svg').first();
       if (await iconBtn.isVisible({ timeout: 2000 }).catch(() => false)) {
         copyBtn = iconBtn;
         console.log('[test] 找到复制图标按钮');
@@ -74,6 +74,9 @@ test.describe.serial('AsterDEX - 推荐（Referral）', () => {
       return;
     }
 
+    // 滚动到按钮位置，避免被固定 header 遮挡
+    await copyBtn.scrollIntoViewIfNeeded();
+    await page.waitForTimeout(500);
     await copyBtn.click();
     console.log('[test] 点击了复制按钮');
     await page.waitForTimeout(1000);
