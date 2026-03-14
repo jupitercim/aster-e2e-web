@@ -177,10 +177,10 @@ npx playwright codegen https://your-exchange.com
 
 | Module | Content | Spec Name | Owner   |
 |--------|---------|-----------|---------|
-| HealthCheck | 检查 web 系统的健康状况 | `health-check.spec.ts` |         |
+| HealthCheck | 检查 web 系统的健康状况 | `health-check.spec.ts` |  shaluo  |
 | Future Limit Order | Limit Order / 隐藏订单 / 只减仓 | `future-limit-order.spec.ts` |         |
 | Future Market Order | Market Order 的自动化测试 | `future-market-order.spec.ts` | Kevin.c |
-| Future Other Order | 止盈止损 / TWAP / 资金费率 | `future-other-order.spec.ts` |         |
+| Future Other Order | 止盈止损 / TWAP / 资金费率 | `future-other-order.spec.ts` |  shaluo  |
 | Spot Order | 现货交易 / 切换交易对 / 历史成交 | `spot-order.spec.ts` | Kevin.c |
 | Shield Order | Shield 模式交易 | `shield-order.spec.ts` |         |
 | Grid Trading | 网格交易策略 | `grid-trading.spec.ts` |         |
@@ -189,8 +189,8 @@ npx playwright codegen https://your-exchange.com
 | Earn | 赚取页面 / 策略列表 / 铸造 | `earn.spec.ts` |         |
 | Airdrop | 空投阶段信息 / FAQ | `airdrop.spec.ts` |         |
 | Aster Code | Builder 中心 / 成为 Builder | `aster-code.spec.ts` |         |
-| API Management | API 管理 / 创建 API | `api-management.spec.ts` |         |
-| Trading Leaderboard | 排行榜 / 周期切换 | `trading-leaderboard.spec.ts` |         |
+| API Management | API 管理 / 创建 API | `api-management.spec.ts` |  shaluo  |
+| Trading Leaderboard | 排行榜 / 周期切换 | `trading-leaderboard.spec.ts` | shaluo  |
 | Referral | 推荐链接 / 收益统计 | `referral.spec.ts` |         |
 | Portfolio | Portfolio 页面 / 资产 Tab / 总资产数值 | `portfolio.spec.ts` |         |
 | Rewards | 奖励 / 积分排行榜 / 规则展开 | `rewards.spec.ts` |         |
