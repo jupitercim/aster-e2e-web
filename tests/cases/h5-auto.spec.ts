@@ -307,32 +307,55 @@ test.describe.serial('AsterDEX - H5 页面兼容测试', () => {
     await page.setViewportSize(MOBILE_VIEWPORT);
 
     await page.goto(process.env.EXCHANGE_URL!);
-    // 等待价格输入框出现，替代 waitForTimeout(3000)
-    await page.waitForSelector('input[placeholder="价格"]', { timeout: 15000 });
+    // 等待页面核心元素出现（H5 默认市价模式，不等价格输入框）
+    await page.waitForSelector('button:has-text("买入/做多"), button:has-text("卖出/做空"), button:has-text("开多"), button:has-text("开空")', { timeout: 15000 });
+    await page.screenshot({ path: `test-results/h5-debug-after-goto-${Date.now()}.png` });
 
-    // ===== 切换到限价模式并读取当前价格 =====
+    // ===== 切换到限价模式 =====
+    // H5 布局：订单类型是下拉框，默认为"市价"，需切换到"限价"
     const priceInput = page.locator('input[placeholder="价格"]');
-    let isPriceVisible = await priceInput.isVisible({ timeout: 5000 }).catch(() => false);
+    let isPriceVisible = await priceInput.isVisible({ timeout: 2000 }).catch(() => false);
 
     if (!isPriceVisible) {
-      // 桌面/平板：尝试点击「限价」按钮
-      const limitSelectors = [
-        'button:not([role="combobox"]):text("限价")',
-        '[role="tab"]:text("限价")',
-        'text=限价',
-      ];
-      for (const sel of limitSelectors) {
-        const btn = page.locator(sel).first();
-        if (await btn.isVisible({ timeout: 2000 }).catch(() => false)) {
-          await btn.click();
-          console.log(`[test] 点击限价按钮: ${sel}`);
-          break;
+      // H5：订单类型按钮（市价/限价），用 button:has-text 精确匹配按钮本身
+      const marketBtn = page.locator('button:has-text("市价")').first();
+      const limitBtn  = page.locator('button:has-text("限价")').first();
+
+      if (await marketBtn.isVisible({ timeout: 3000 }).catch(() => false)) {
+        // 当前是市价模式，点击按钮切换/打开下拉
+        await marketBtn.click();
+        console.log('[test] H5 布局：点击了"市价"按钮');
+        await page.waitForTimeout(600);
+
+        // 下拉选项可能渲染在 body 层（portal）
+        const limitOption = page.locator('[role="option"]:has-text("限价"), [role="menuitem"]:has-text("限价"), li:has-text("限价")').first();
+        if (await limitOption.isVisible({ timeout: 3000 }).catch(() => false)) {
+          await limitOption.click();
+          console.log('[test] H5 布局：从下拉选择了"限价"');
+          await page.waitForTimeout(500);
+        } else {
+          // 如果没有下拉出现，再尝试直接点"限价"按钮
+          if (await limitBtn.isVisible({ timeout: 2000 }).catch(() => false)) {
+            await limitBtn.click();
+            console.log('[test] H5 布局：点击了独立的"限价"按钮');
+            await page.waitForTimeout(500);
+          }
         }
+      } else if (await limitBtn.isVisible({ timeout: 2000 }).catch(() => false)) {
+        // 已有限价按钮可以直接点
+        await limitBtn.click();
+        console.log('[test] 点击了"限价"按钮');
+        await page.waitForTimeout(500);
       }
-      await page.waitForSelector('input[placeholder="价格"]', { timeout: 5000 });
-      isPriceVisible = await priceInput.isVisible({ timeout: 3000 }).catch(() => false);
+
+      isPriceVisible = await priceInput.isVisible({ timeout: 5000 }).catch(() => false);
     } else {
-      console.log('[test] H5 布局：已处于限价模式，跳过按钮点击');
+      console.log('[test] 已处于限价模式，跳过切换');
+    }
+
+    if (!isPriceVisible) {
+      await page.screenshot({ path: `test-results/h5-debug-no-price-input-${Date.now()}.png` });
+      throw new Error('[test] ❌ 切换到限价模式后仍找不到价格输入框');
     }
 
     // ===== 读取当前价格（精简为 3 种方式）=====
