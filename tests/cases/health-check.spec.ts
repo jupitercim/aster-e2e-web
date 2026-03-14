@@ -11,7 +11,8 @@ test.describe.serial('AsterDEX - 系统健康检查', () => {
   // ========================================================
   // 测试 1：主页可正常加载
   // ========================================================
-  test('主页可正常加载', async ({ loggedInPage: page }) => {
+  test('主页可正常加载', async ({ extensionContext }) => {
+    const page = await extensionContext.newPage();
     const origin = getBaseOrigin();
     await page.goto(`${origin}/zh-CN`);
     await page.waitForLoadState('domcontentloaded');
@@ -33,35 +34,45 @@ test.describe.serial('AsterDEX - 系统健康检查', () => {
     expect(hasErrorPage).toBe(false);
 
     console.log('[health] ✅ 主页加载正常');
+    await page.close();
   });
 
   // ========================================================
   // 测试 2：合约交易页可正常加载
   // ========================================================
-  test('合约交易页可正常加载', async ({ loggedInPage: page }) => {
-    // 复用 test 1 已打开的页面，无需重新导航
-
+  test('合约交易页可正常加载', async ({ extensionContext }) => {
+    const page = await extensionContext.newPage();
     await page.goto(process.env.EXCHANGE_URL!);
     await page.waitForLoadState('domcontentloaded');
     await page.waitForTimeout(3000);
 
-    // 验证关键交易组件存在（限价/市价按钮）
-    const limitBtn = page.locator('button:not([role="combobox"]):text("限价")');
-    const marketBtn = page.locator('button:text("市价")');
+    // 验证页面标题不为空且无错误页
+    const title = await page.title();
+    expect(title).toBeTruthy();
 
-    const limitVisible = await limitBtn.isVisible({ timeout: 5000 }).catch(() => false);
-    const marketVisible = await marketBtn.isVisible({ timeout: 5000 }).catch(() => false);
+    const errorPage = page.locator([
+      'h1:text-is("404")',
+      'h1:text-is("500")',
+      'h1:has-text("Not Found")',
+      'h1:has-text("Internal Server Error")',
+    ].join(', '));
+    const hasErrorPage = await errorPage.isVisible({ timeout: 2000 }).catch(() => false);
+    expect(hasErrorPage).toBe(false);
 
-    expect(limitVisible || marketVisible).toBe(true);
-    console.log(`[health] ✅ 合约交易页加载正常 | 限价: ${limitVisible} | 市价: ${marketVisible}`);
+    // 验证"连接钱包"按钮存在（未登录时始终可见，说明交易 UI 已加载）
+    const connectWalletBtn = page.locator('text=连接钱包').first();
+    const connectVisible = await connectWalletBtn.isVisible({ timeout: 5000 }).catch(() => false);
+    expect(connectVisible).toBe(true);
+
+    console.log('[health] ✅ 合约交易页加载正常');
+    await page.close();
   });
 
   // ========================================================
   // 测试 3：网络请求无明显 5xx 错误
   // ========================================================
-  test('网络请求无 5xx 错误', async ({ loggedInPage: page }) => {
-    // 复用 test 2 已打开的页面，无需重新导航
-
+  test('网络请求无 5xx 错误', async ({ extensionContext }) => {
+    const page = await extensionContext.newPage();
     const failedRequests: string[] = [];
 
     page.on('response', (response) => {
@@ -70,8 +81,8 @@ test.describe.serial('AsterDEX - 系统健康检查', () => {
       }
     });
 
-    // 触发一次页面刷新，收集网络请求
-    await page.reload({ waitUntil: 'domcontentloaded' });
+    await page.goto(process.env.EXCHANGE_URL!);
+    await page.waitForLoadState('domcontentloaded');
     await page.waitForTimeout(3000);
 
     if (failedRequests.length > 0) {
@@ -82,6 +93,7 @@ test.describe.serial('AsterDEX - 系统健康检查', () => {
 
     // 允许最多 0 个 5xx 错误
     expect(failedRequests.length).toBe(0);
+    await page.close();
   });
 
 });
