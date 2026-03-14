@@ -46,11 +46,11 @@ test.describe.serial('AsterDEX - H5 页面兼容测试', () => {
     }
   }
 
-  // ===== 辅助：检测 Toast 提示 =====
+  // ===== 辅助：检测 Toast 提示（超时 6s，更可靠）=====
   async function checkToast(page: any, keywords: string[], label: string): Promise<boolean> {
     const selector = keywords.map(kw => `text=${kw}`).join(', ');
     const toast = page.locator(selector).first();
-    const appeared = await toast.waitFor({ state: 'visible', timeout: 3000 }).then(() => true).catch(() => false);
+    const appeared = await toast.waitFor({ state: 'visible', timeout: 6000 }).then(() => true).catch(() => false);
     if (appeared) {
       const text = await toast.textContent();
       console.log(`[test] ✅ ${label}: ${text?.trim()}`);
@@ -70,7 +70,7 @@ test.describe.serial('AsterDEX - H5 页面兼容测试', () => {
 
     await page.goto(getBaseUrl());
     await page.waitForLoadState('domcontentloaded');
-    await page.waitForTimeout(3000);
+    await page.waitForTimeout(2000);
 
     const title = await page.title();
     console.log(`[test] 页面标题: ${title}`);
@@ -85,19 +85,23 @@ test.describe.serial('AsterDEX - H5 页面兼容测试', () => {
   // 测试 2：移动端合约交易页加载
   // ========================================================
   test('移动端视口合约交易页可正常加载', async ({ loggedInPage: page }) => {
+    // serial 场景下 test1 已设置为移动端，此处确保一致（双保险）
+    await page.setViewportSize(MOBILE_VIEWPORT);
+
     await page.goto(process.env.EXCHANGE_URL!);
-    await page.waitForLoadState('domcontentloaded');
-    await page.waitForTimeout(3000);
+    // 等待核心元素出现，替代固定 waitForTimeout(3000)
+    await page.waitForSelector('button:has-text("限价"), button:has-text("市价")', { timeout: 10000 });
 
     const tradeElements = [
-      page.locator('button:text("限价")').first(),
-      page.locator('button:text("市价")').first(),
-      page.locator('input[placeholder="数量"]').first(),
+      page.locator('button:has-text("限价")').first(),
+      page.locator('button:has-text("市价")').first(),
+      // H5 布局数量输入框 placeholder 可能是"数量"或"Qty"
+      page.locator('input[placeholder="数量"], input[placeholder="Qty"]').first(),
     ];
 
     let visibleCount = 0;
     for (const el of tradeElements) {
-      if (await el.isVisible({ timeout: 5000 }).catch(() => false)) visibleCount++;
+      if (await el.isVisible({ timeout: 3000 }).catch(() => false)) visibleCount++;
     }
 
     console.log(`[test] 移动端交易元素可见数量: ${visibleCount}/${tradeElements.length}`);
@@ -116,8 +120,8 @@ test.describe.serial('AsterDEX - H5 页面兼容测试', () => {
     console.log(`[test] 视口已切换为 ${TABLET_VIEWPORT.width}×${TABLET_VIEWPORT.height}`);
 
     await page.goto(process.env.EXCHANGE_URL!);
-    await page.waitForLoadState('domcontentloaded');
-    await page.waitForTimeout(3000);
+    // 等待核心交易元素出现，替代 waitForTimeout(3000)
+    await page.waitForSelector('button:has-text("限价"), button:has-text("市价")', { timeout: 10000 });
 
     const title = await page.title();
     expect(title).toBeTruthy();
@@ -128,16 +132,31 @@ test.describe.serial('AsterDEX - H5 页面兼容测试', () => {
 
 
   // ========================================================
-  // 测试 4：恢复桌面视口
+  // 测试 4：恢复桌面视口 + 验证桌面专有元素
   // ========================================================
   test('恢复桌面视口（1440px）验证正常', async ({ loggedInPage: page }) => {
     await page.setViewportSize({ width: 1440, height: 900 });
     console.log('[test] 视口已恢复为 1440×900');
 
-    await page.waitForTimeout(1000);
+    // 等待页面重新布局，替代 waitForTimeout(1000)
+    await page.waitForSelector('button:has-text("限价"), dt:has-text("标记价格")', { timeout: 8000 });
+
+    // 验证桌面布局专有元素（桌面有 dt 标记价格面板 / 下单侧边栏）
+    const desktopElements = [
+      page.locator('dt:has-text("标记价格")').first(),
+      page.locator('dt:has-text("指数价格")').first(),
+      page.locator('#tour-guide-place-order').first(),
+    ];
+
+    let desktopVisible = 0;
+    for (const el of desktopElements) {
+      if (await el.isVisible({ timeout: 2000 }).catch(() => false)) desktopVisible++;
+    }
+    console.log(`[test] 桌面布局专有元素可见: ${desktopVisible}/${desktopElements.length}`);
 
     const title = await page.title();
     expect(title).toBeTruthy();
+    expect(desktopVisible).toBeGreaterThan(0);
 
     await page.screenshot({ path: `test-results/h5-desktop-restore-${Date.now()}.png` });
     console.log('[test] ✅ 桌面视口恢复正常');
@@ -173,46 +192,60 @@ test.describe.serial('AsterDEX - H5 页面兼容测试', () => {
     await page.screenshot({ path: `test-results/h5-nav-首页-${Date.now()}.png` });
 
     // ---- 2. 行情（通过汉堡菜单 ≡ 进入） ----
-    // 汉堡菜单通常是页面右上角唯一不含文字的按钮
-    const hamburger = page.locator('button').filter({ hasNot: page.locator(':has-text("启动"), :has-text("下载"), :has-text("交易")') }).last();
-    let marketFound = false;
-    if (await hamburger.isVisible({ timeout: 2000 }).catch(() => false)) {
-      await hamburger.click();
-      await page.waitForTimeout(1000);
+    // 优先用 aria-label / data-testid，再 fallback 到结构化选择器
+    const hamburgerSelectors = [
+      '[aria-label="menu"]',
+      '[aria-label="Menu"]',
+      '[data-testid="hamburger"]',
+      '[data-testid="mobile-menu"]',
+      'button[class*="hamburger"]',
+      'button[class*="Hamburger"]',
+      'button[class*="menu-btn"]',
+      'header button:last-child',
+      'nav button:last-child',
+    ];
 
-      // 菜单打开后找行情/Markets 入口
-      const marketKeywords = ['行情', 'Markets', 'Market', '市场'];
-      for (const kw of marketKeywords) {
-        const el = page.locator(`text=${kw}`).first();
-        if (await el.isVisible({ timeout: 2000 }).catch(() => false)) {
-          await el.click();
-          await page.waitForTimeout(2000);
-          // 验证进入后的内容
-          const marketContentKws = ['BTC', 'ETH', '24h', '涨跌', '最新价', '合约'];
-          for (const ck of marketContentKws) {
-            if (await page.locator(`text=${ck}`).first().isVisible({ timeout: 2000 }).catch(() => false)) {
-              console.log(`[test] ✅ 「行情」页面内容存在: "${ck}"`);
-              marketFound = true;
-              successCount++;
-              break;
+    let marketFound = false;
+    for (const sel of hamburgerSelectors) {
+      const btn = page.locator(sel).first();
+      if (await btn.isVisible({ timeout: 1000 }).catch(() => false)) {
+        await btn.click();
+        await page.waitForTimeout(800);
+
+        const marketKeywords = ['行情', 'Markets', 'Market', '市场'];
+        for (const kw of marketKeywords) {
+          const el = page.locator(`text=${kw}`).first();
+          if (await el.isVisible({ timeout: 1500 }).catch(() => false)) {
+            await el.click();
+            await page.waitForTimeout(2000);
+            const marketContentKws = ['BTC', 'ETH', '24h', '涨跌', '最新价', '合约'];
+            for (const ck of marketContentKws) {
+              if (await page.locator(`text=${ck}`).first().isVisible({ timeout: 2000 }).catch(() => false)) {
+                console.log(`[test] ✅ 「行情」页面内容存在: "${ck}"`);
+                marketFound = true;
+                successCount++;
+                break;
+              }
             }
+            break;
           }
-          break;
         }
-      }
-      if (!marketFound) {
-        console.log('[test] ⚠️ 汉堡菜单中未找到「行情」入口，按 Escape 关闭');
+        if (marketFound) break;
+        // 菜单打开但无行情入口，关闭后尝试下一选择器
         await page.keyboard.press('Escape');
+        await page.waitForTimeout(300);
       }
-    } else {
-      console.log('[test] ⚠️ 未找到汉堡菜单按钮，跳过「行情」验证');
+    }
+
+    if (!marketFound) {
+      console.log('[test] ⚠️ 未找到汉堡菜单或「行情」入口，跳过');
     }
     await page.screenshot({ path: `test-results/h5-nav-行情-${Date.now()}.png` });
 
     // ---- 3. 交易页 ----
     await page.goto(process.env.EXCHANGE_URL!);
-    await page.waitForLoadState('domcontentloaded');
-    await page.waitForTimeout(2000);
+    // 等待核心元素，替代 waitForTimeout(2000)
+    await page.waitForSelector('button:has-text("限价"), button:has-text("市价")', { timeout: 10000 });
 
     const tradeKws = ['限价', '市价', 'BTC', 'USDT', '开多', '开空'];
     for (const kw of tradeKws) {
@@ -269,25 +302,20 @@ test.describe.serial('AsterDEX - H5 页面兼容测试', () => {
 
   // ========================================================
   // 测试 6：H5 移动端限价挂单（mark price - 1000）
-  //
-  // H5 布局没有 dt:has-text("标记价格")，
-  // 改为先选"限价"再读取价格输入框的预填值（交易所自动填入当前价）
   // ========================================================
   test('H5 移动端限价挂单 BTC/USDT 0.001 BTC', async ({ loggedInPage: page }) => {
     await page.setViewportSize(MOBILE_VIEWPORT);
 
     await page.goto(process.env.EXCHANGE_URL!);
-    await page.waitForLoadState('domcontentloaded');
-    await page.waitForTimeout(3000);
+    // 等待价格输入框出现，替代 waitForTimeout(3000)
+    await page.waitForSelector('input[placeholder="价格"]', { timeout: 15000 });
 
     // ===== 切换到限价模式并读取当前价格 =====
-    // H5 布局：页面默认已是限价单模式，价格输入框预填了当前价（无需点击按钮）
-    // 桌面布局：需要先点击「限价」按钮
     const priceInput = page.locator('input[placeholder="价格"]');
     let isPriceVisible = await priceInput.isVisible({ timeout: 5000 }).catch(() => false);
 
     if (!isPriceVisible) {
-      // 桌面/平板：尝试多种选择器点击「限价」按钮
+      // 桌面/平板：尝试点击「限价」按钮
       const limitSelectors = [
         'button:not([role="combobox"]):text("限价")',
         '[role="tab"]:text("限价")',
@@ -301,15 +329,16 @@ test.describe.serial('AsterDEX - H5 页面兼容测试', () => {
           break;
         }
       }
-      await page.waitForTimeout(800);
-      isPriceVisible = await priceInput.isVisible({ timeout: 5000 }).catch(() => false);
+      await page.waitForSelector('input[placeholder="价格"]', { timeout: 5000 });
+      isPriceVisible = await priceInput.isVisible({ timeout: 3000 }).catch(() => false);
     } else {
       console.log('[test] H5 布局：已处于限价模式，跳过按钮点击');
     }
 
-    // 读取当前价格
-    // 方式1：dt:has-text("标记价格") - 桌面/平板布局
+    // ===== 读取当前价格（精简为 3 种方式）=====
     let markPrice = 0;
+
+    // 方式1：桌面布局 - dt:has-text("标记价格")
     const markPriceEl = page.locator('dt:has-text("标记价格")').locator('..').locator('dd').first();
     if (await markPriceEl.isVisible({ timeout: 2000 }).catch(() => false)) {
       const text = await markPriceEl.textContent();
@@ -317,46 +346,16 @@ test.describe.serial('AsterDEX - H5 页面兼容测试', () => {
       console.log(`[test] 桌面布局读取 Mark Price: ${markPrice}`);
     }
 
-    // 方式2：H5 布局 - 读取价格输入框的预填值
+    // 方式2：H5 布局 - 点击价格输入框触发自动填充，再读取
     if ((!markPrice || isNaN(markPrice) || markPrice <= 0) && isPriceVisible) {
+      await priceInput.click();
+      await page.waitForTimeout(800);
       const val = await priceInput.inputValue();
       markPrice = parseFloat(val.replace(/,/g, '').trim() || '0');
       if (markPrice > 0) console.log(`[test] H5 布局 - 从价格输入框读取当前价: ${markPrice}`);
     }
 
-    // 方式3：点击价格输入框触发自动填充后再读
-    if ((!markPrice || isNaN(markPrice) || markPrice <= 0) && isPriceVisible) {
-      await priceInput.click();
-      await page.waitForTimeout(1500);
-      const val = await priceInput.inputValue();
-      markPrice = parseFloat(val.replace(/,/g, '').trim() || '0');
-      if (markPrice > 0) console.log(`[test] H5 布局 - 点击输入框后读取当前价: ${markPrice}`);
-    }
-
-    // 方式4：从页面 ticker 区域可见价格文字中提取
-    if (!markPrice || isNaN(markPrice) || markPrice <= 0) {
-      const tickerSelectors = [
-        '[class*="lastPrice"]',
-        '[class*="last-price"]',
-        '[class*="markPrice"]',
-        '[class*="mark-price"]',
-        '[class*="indexPrice"]',
-      ];
-      for (const sel of tickerSelectors) {
-        const el = page.locator(sel).first();
-        if (await el.isVisible({ timeout: 1000 }).catch(() => false)) {
-          const text = await el.textContent();
-          const val = parseFloat((text || '').replace(/,/g, '').trim());
-          if (val > 1000) {
-            markPrice = val;
-            console.log(`[test] 方式4 - 从 ${sel} 读取价格: ${markPrice}`);
-            break;
-          }
-        }
-      }
-    }
-
-    // 方式5：从页面所有可见文字中匹配 BTC 价格范围（10000~200000）
+    // 方式3：从页面所有可见数字中匹配 BTC 价格范围（10000~200000）
     if (!markPrice || isNaN(markPrice) || markPrice <= 0) {
       const allText = await page.evaluate(() => document.body.innerText);
       const matches = allText.match(/\b([1-9]\d{4,5}(?:\.\d+)?)\b/g) || [];
@@ -364,7 +363,7 @@ test.describe.serial('AsterDEX - H5 页面兼容测试', () => {
         const val = parseFloat(m.replace(/,/g, ''));
         if (val >= 10000 && val <= 200000) {
           markPrice = val;
-          console.log(`[test] 方式5 - 从页面文字提取价格: ${markPrice}`);
+          console.log(`[test] 方式3 - 从页面文字提取价格: ${markPrice}`);
           break;
         }
       }
@@ -401,11 +400,10 @@ test.describe.serial('AsterDEX - H5 页面兼容测试', () => {
     await page.locator('button[type="submit"]').first().click();
     await page.waitForTimeout(500);
 
-    // 处理确认弹窗
     await handleConfirmDialog(page);
     await page.waitForTimeout(1000);
 
-    // 检查下单成功 Toast
+    // 检查下单成功 Toast（6s）
     await checkToast(page, ['下单成功', '委托成功', '成功提交', 'Order placed', 'Success'], '下单成功消息');
 
     // 验证当前委托列表出现该订单
@@ -425,8 +423,6 @@ test.describe.serial('AsterDEX - H5 页面兼容测试', () => {
   // ========================================================
   test('H5 移动端取消刚才的限价委托单', async ({ loggedInPage: page }) => {
     // 复用 test 6 已打开的页面，无需重新导航
-
-    // 切换到当前委托 tab
     await page.locator('button[role="tab"]:has-text("当前委托")').click();
     await page.waitForTimeout(1000);
 
@@ -452,7 +448,7 @@ test.describe.serial('AsterDEX - H5 页面兼容测试', () => {
       console.log('[test] 确认取消弹窗已点击');
     }
 
-    // 检查取消成功 Toast
+    // 检查取消成功 Toast（6s）
     await checkToast(page, ['取消成功', '撤单成功', '已取消', 'Cancelled', 'Cancel success'], '取消成功消息');
 
     // 轮询等待委托数量减少（最长 15 秒）
@@ -463,6 +459,11 @@ test.describe.serial('AsterDEX - H5 页面兼容测试', () => {
       return orderCountAfter;
     }, { timeout: 15000, intervals: [1000, 2000, 3000], message: '委托数量应在取消后减少' })
       .toBeLessThan(orderCountBefore);
+
+    const dropped = orderCountBefore - orderCountAfter;
+    if (dropped > 5) {
+      console.warn(`[test] ⚠️ 委托数量减少了 ${dropped} 笔（预期仅减少 1），可能有其他订单被同时处理`);
+    }
 
     console.log(`[test] 取消后委托数量: ${orderCountAfter}`);
     await page.screenshot({ path: `test-results/h5-limit-order-cancelled-${Date.now()}.png` });
