@@ -514,15 +514,17 @@ test.describe.serial('AsterDEX - H5 页面兼容测试', () => {
     const closeBtn = page.locator('button:has-text("Close Menu")').first();
     await expect(closeBtn).toBeVisible({ timeout: 5000 });
 
-    // 验证核心导航项目可见（用 button/a 精确匹配，避免命中 header 中隐藏的同名元素）
+    // 验证核心导航项目可见
+    // 移动端菜单项均为 li[class*="border-b"]（父 ul[class*="px-4"]），
+    // 与隐藏的桌面端 li.relative 区分开
     const navItems: Array<[string, string]> = [
-      ['button:has-text("空投")',  '空投'],
-      ['a:has-text("Shield")',     'Shield'],
-      ['a:has-text("投资组合")',   '投资组合'],
-      ['a:has-text("推荐")',       '推荐'],
-      ['button:has-text("奖励")',  '奖励'],
-      ['a:has-text("火箭发射")',   '火箭发射'],
-      ['button:has-text("更多")',  '更多'],
+      ['li[class*="border-b"]:has-text("空投")',    '空投'],
+      ['li[class*="border-b"]:has-text("Shield")',  'Shield'],
+      ['li[class*="border-b"]:has-text("投资组合")', '投资组合'],
+      ['li[class*="border-b"]:has-text("推荐")',    '推荐'],
+      ['li[class*="border-b"]:has-text("奖励")',    '奖励'],
+      ['li[class*="border-b"]:has-text("火箭发射")', '火箭发射'],
+      ['li[class*="border-b"]:has-text("更多")',    '更多'],
     ];
     let visibleCount = 0;
     for (const [sel, label] of navItems) {
@@ -536,7 +538,7 @@ test.describe.serial('AsterDEX - H5 页面兼容测试', () => {
     expect(visibleCount).toBeGreaterThanOrEqual(3);
 
     // 验证「更多」子菜单可展开
-    const moreBtn = page.locator('button:has-text("更多")').first();
+    const moreBtn = page.locator('li[class*="border-b"]:has-text("更多")').first();
     if (await moreBtn.isVisible({ timeout: 2000 }).catch(() => false)) {
       await moreBtn.click();
       await page.waitForTimeout(600);

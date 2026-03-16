@@ -62,31 +62,50 @@ test.describe.serial('AsterDEX - Aster Code（Builder 中心）', () => {
       return;
     }
 
+    // 「成为 Builder」是 <a target="_blank">，点击会打开新 tab，需捕获后关闭
+    const newPagePromise = page.context().waitForEvent('page', { timeout: 5000 }).catch(() => null);
     await builderBtn.click();
     console.log('[test] 点击了「成为 Builder」按钮');
-    await page.waitForTimeout(2000);
 
-    // 验证弹窗或页面跳转
-    const responseKeywords = ['Builder', '激活', '注册', 'Activate', 'Register', 'Code'];
-    let responseFound = false;
-    for (const kw of responseKeywords) {
-      const el = page.locator(`text=${kw}`).first();
-      if (await el.isVisible({ timeout: 3000 }).catch(() => false)) {
-        responseFound = true;
-        console.log(`[test] ✅ 点击后响应: "${kw}"`);
-        break;
+    const newPage = await newPagePromise;
+    if (newPage) {
+      await newPage.waitForLoadState('domcontentloaded').catch(() => {});
+      const responseKeywords = ['Builder', '激活', '注册', 'Activate', 'Register', 'Code'];
+      let responseFound = false;
+      for (const kw of responseKeywords) {
+        const el = newPage.locator(`text=${kw}`).first();
+        if (await el.isVisible({ timeout: 3000 }).catch(() => false)) {
+          responseFound = true;
+          console.log(`[test] ✅ 点击后响应: "${kw}"`);
+          break;
+        }
       }
+      if (!responseFound) {
+        console.log('[test] ⚠️ 未找到点击响应，可能需要特定前置条件');
+      }
+      await newPage.screenshot({ path: `test-results/aster-code-builder-${Date.now()}.png` });
+      await newPage.close();
+      console.log('[test] 新 tab 已关闭');
+    } else {
+      // 未开新 tab，检查当前页弹窗
+      await page.waitForTimeout(2000);
+      const responseKeywords = ['Builder', '激活', '注册', 'Activate', 'Register', 'Code'];
+      let responseFound = false;
+      for (const kw of responseKeywords) {
+        const el = page.locator(`text=${kw}`).first();
+        if (await el.isVisible({ timeout: 3000 }).catch(() => false)) {
+          responseFound = true;
+          console.log(`[test] ✅ 点击后响应: "${kw}"`);
+          break;
+        }
+      }
+      if (!responseFound) {
+        console.log('[test] ⚠️ 未找到点击响应，可能需要特定前置条件');
+      }
+      await page.screenshot({ path: `test-results/aster-code-builder-${Date.now()}.png` });
+      await page.keyboard.press('Escape');
+      await page.waitForTimeout(500);
     }
-
-    if (!responseFound) {
-      console.log('[test] ⚠️ 未找到点击响应，可能需要特定前置条件');
-    }
-
-    await page.screenshot({ path: `test-results/aster-code-builder-${Date.now()}.png` });
-
-    // 关闭弹窗（如有）
-    await page.keyboard.press('Escape');
-    await page.waitForTimeout(500);
 
     console.log('[test] ✅ Builder 按钮交互验证完成');
   });
