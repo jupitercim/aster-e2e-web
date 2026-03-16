@@ -110,7 +110,11 @@ export const test = base.extend<{}, {
     }
 
     // ===== 第二步：连接交易所 =====
-    const page = await context.newPage();
+    // 复用已有的交易所 tab，避免每次 fixture 重建时开新标签页
+    const existingPage = context.pages().find(
+      p => !p.url().startsWith('chrome-extension://') && !p.isClosed()
+    );
+    const page = existingPage ?? await context.newPage();
     await page.goto(process.env.EXCHANGE_URL || 'https://your-exchange.com');
     await page.waitForLoadState('domcontentloaded');
     await page.waitForTimeout(2000);
