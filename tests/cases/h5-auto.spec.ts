@@ -620,32 +620,32 @@ test.describe.serial('AsterDEX - H5 页面兼容测试', () => {
     await page.setViewportSize(MOBILE_VIEWPORT);
     const origin = new URL(process.env.EXCHANGE_URL!).origin;
     await page.goto(`${origin}/zh-CN/trade/1001x/futures/BTCUSD`);
-    // 等待永续合约/预测 模式区域出现（1001x 特有，加载完成标志）
-    await page.waitForSelector('text=永续合约', { timeout: 15000 });
+    await page.waitForLoadState('load');
+    await page.waitForTimeout(3000);
+    // H5 1001x 页面：看涨/看跌 是 <label> 元素，非 <button>
+    await page.waitForSelector('label:has-text("看涨")', { timeout: 20000 });
 
-    // 交易对价格区域
+    // 交易对
     const pair = page.locator('text=BTCUSD').first();
     await expect(pair).toBeVisible({ timeout: 5000 });
+    console.log('[test] ✅ BTCUSD 交易对可见');
 
-    // 永续合约 / 预测 模式切换
-    const perpetualBtn = page.locator('button:has-text("永续合约"), text=永续合约').first();
-    const predictionBtn = page.locator('button:has-text("预测"), text=预测').first();
-    const modeVisible = await perpetualBtn.isVisible({ timeout: 3000 }).catch(() => false)
-                     || await predictionBtn.isVisible({ timeout: 3000 }).catch(() => false);
-    console.log(`[test] 永续合约/预测 模式入口可见: ${modeVisible}`);
+    // 看涨 / 看跌 label（H5 版本的做多/做空）
+    const longBtn  = page.locator('label:has-text("看涨")').first();
+    const shortBtn = page.locator('label:has-text("看跌")').first();
+    const longVisible  = await longBtn.isVisible({ timeout: 3000 }).catch(() => false);
+    const shortVisible = await shortBtn.isVisible({ timeout: 3000 }).catch(() => false);
+    console.log(`[test] 看涨: ${longVisible ? '✅' : '⚠️'}  看跌: ${shortVisible ? '✅' : '⚠️'}`);
+    expect(longVisible || shortVisible).toBe(true);
 
-    // 杠杆滑块区域
-    const leverageVisible = await page.locator('text=1001x, text=Degen').first().isVisible({ timeout: 2000 }).catch(() => false);
-    console.log(`[test] 杠杆滑块可见: ${leverageVisible}`);
-    await page.evaluate(() => window.scrollTo(0, 500));
-    await page.waitForTimeout(500);
+    // 杠杆区域（含 Degen 标签和 1001 数值）
+    const degenVisible = await page.locator('text=Degen').first().isVisible({ timeout: 3000 }).catch(() => false);
+    console.log(`[test] 杠杆 Degen 标签可见: ${degenVisible ? '✅' : '⚠️'}`);
 
-    // 底部委托/历史 tab
-    const orderTab = page.locator('[role="tab"]:has-text("订单")').first();
-    if (await orderTab.isVisible({ timeout: 3000 }).catch(() => false)) {
-      await orderTab.click();
-      await page.waitForTimeout(600);
-    }
+    // 图表 / 信息 tab
+    const chartTab = page.locator('text=图表').first();
+    const chartVisible = await chartTab.isVisible({ timeout: 3000 }).catch(() => false);
+    console.log(`[test] 图表 Tab 可见: ${chartVisible ? '✅' : '⚠️'}`);
 
     await page.screenshot({ path: `test-results/h5-1001x-${Date.now()}.png` });
     console.log('[test] ✅ H5 1001x 页面加载正常');
