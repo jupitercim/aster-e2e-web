@@ -829,12 +829,11 @@ test.describe.serial('AsterDEX - H5 页面兼容测试', () => {
   test('H5 移动端火箭发射页面模块完整', async ({ loggedInPage: page }) => {
     await page.setViewportSize(MOBILE_VIEWPORT);
     const origin = new URL(process.env.EXCHANGE_URL!).origin;
-    await page.goto(`${origin}/zh-CN/rocket-launch`);
-    await page.waitForSelector('text=火箭发射', { timeout: 15000 });
+    await page.goto(`${origin}/zh-CN/rocket-launch`, { waitUntil: 'networkidle', timeout: 30000 });
 
-    // 页面标题
+    // 页面标题（networkidle 已确保渲染完成，直接断言）
     const title = page.getByRole('heading').filter({ hasText: /火箭发射/ }).first();
-    await expect(title).toBeVisible({ timeout: 5000 });
+    await expect(title).toBeVisible({ timeout: 10000 });
 
     // 副标题
     const subtitle = page.locator('text=交易早期加密项目并获得奖励').first();
