@@ -3,7 +3,6 @@ import { test, expect } from '../fixtures/auth';
 function getSettingsUrl(): string {
   const base = process.env.EXCHANGE_URL || '';
   const origin = new URL(base).origin;
-  // API 管理页是 Settings 的入口之一，其余设置项通过右上角用户菜单访问
   return `${origin}/zh-CN/api-management`;
 }
 
@@ -22,8 +21,20 @@ test.describe.serial('AsterDEX - Settings 设置页面', () => {
 
     const title = await page.title();
     console.log(`[test] 页面标题: ${title}`);
-    // 软断言：部分设置页在未连接钱包时可能无标题
     expect.soft(title).toBeTruthy();
+
+    // 验证没有出现错误页
+    const errorPage = page.locator([
+      'h1:text-is("404")',
+      'h1:text-is("500")',
+      'h1:has-text("Not Found")',
+      'h1:has-text("Internal Server Error")',
+    ].join(', '));
+    const hasErrorPage = await errorPage.isVisible({ timeout: 2000 }).catch(() => false);
+    expect(hasErrorPage).toBe(false);
+
+    const bodyVisible = await page.locator('body').isVisible({ timeout: 3000 }).catch(() => false);
+    expect(bodyVisible).toBe(true);
 
     await page.screenshot({ path: `test-results/settings-load-${Date.now()}.png` });
     console.log('[test] ✅ Settings 页面加载完成');
@@ -31,11 +42,9 @@ test.describe.serial('AsterDEX - Settings 设置页面', () => {
 
 
   // ========================================================
-  // 测试 2：验证设置选项显示
+  // 测试 2：验证设置选项正常显示
   // ========================================================
   test('验证设置选项正常显示', async ({ loggedInPage: page }) => {
-    // 复用 test 1 已打开的页面，无需重新导航
-
     const settingKeywords = ['设置', 'Settings', '语言', 'Language', '通知', 'Notifications',
       '主题', 'Theme', '安全', 'Security', '偏好', 'Preferences'];
     let found = false;
@@ -50,7 +59,7 @@ test.describe.serial('AsterDEX - Settings 设置页面', () => {
     }
 
     if (!found) {
-      console.log('[test] ⚠️ 未找到设置选项，请确认页面 URL');
+      console.log('[test] ⚠️ 未找到设置选项');
       await page.screenshot({ path: `test-results/settings-content-${Date.now()}.png` });
     }
 
@@ -61,22 +70,24 @@ test.describe.serial('AsterDEX - Settings 设置页面', () => {
 
 
   // ========================================================
-  // 测试 3：切换语言设置（验证交互可用）
+  // 测试 3：验证语言切换功能可用
   // ========================================================
   test('验证语言切换功能可用', async ({ loggedInPage: page }) => {
-    // 复用 test 2 已打开的页面，无需重新导航
-
-    const langKeywords = ['语言', 'Language', '中文', 'English'];
+    const langKeywords = ['语言', 'Language', '中文', 'English', 'lang', 'locale'];
     let langEl = null;
 
     for (const kw of langKeywords) {
-      const el = page.locator(`text=${kw}`).first();
-      if (await el.isVisible({ timeout: 2000 }).catch(() => false)) {
+      const el = page.locator(
+        `button:has-text("${kw}"), a:has-text("${kw}"), [aria-label*="${kw}"], text=${kw}`
+      ).first();
+      if (await el.isVisible({ timeout: 3000 }).catch(() => false)) {
         langEl = el;
         console.log(`[test] 找到语言设置入口: "${kw}"`);
         break;
       }
     }
+
+    expect.soft(langEl !== null).toBe(true);
 
     if (!langEl) {
       console.log('[test] ⚠️ 未找到语言设置，跳过');
@@ -86,10 +97,8 @@ test.describe.serial('AsterDEX - Settings 设置页面', () => {
     await langEl.click();
     await page.waitForTimeout(1000);
 
-    // 检查是否弹出语言选择面板
-    const langOptions = ['中文', 'English', '한국어', '日本語'];
+    const langOptions = ['中文', '简体中文', 'English', '한국어', '日本語', 'Türkçe'];
     let optionFound = false;
-
     for (const lang of langOptions) {
       const option = page.locator(`text=${lang}`).first();
       if (await option.isVisible({ timeout: 2000 }).catch(() => false)) {
@@ -99,22 +108,64 @@ test.describe.serial('AsterDEX - Settings 设置页面', () => {
       }
     }
 
-    if (optionFound) {
-      // 不实际切换，按 Esc 关闭
-      await page.keyboard.press('Escape');
-      console.log('[test] ✅ 语言切换面板可正常打开');
-    } else {
-      console.log('[test] ⚠️ 未找到语言选项列表，跳过');
-    }
+    expect.soft(optionFound).toBe(true);
+    await page.keyboard.press('Escape');
+    await page.waitForTimeout(500);
+
+    await page.screenshot({ path: `test-results/settings-language-${Date.now()}.png` });
+    console.log('[test] ✅ 语言切换验证完成');
   });
 
 
   // ========================================================
-  // 测试 4：验证通知设置可用（如有）
+  // 测试 4：验证主题切换（暗黑/明亮模式）
+  // ========================================================
+  test('验证主题切换（暗黑/明亮模式）', async ({ loggedInPage: page }) => {
+    const themeKeywords = ['主题', 'Theme', '暗黑', 'Dark', '明亮', 'Light', '夜间', '日间', 'Night', 'Day'];
+    let themeEl = null;
+
+    for (const kw of themeKeywords) {
+      const el = page.locator(
+        `button:has-text("${kw}"), [aria-label*="${kw}"], [title*="${kw}"], text=${kw}`
+      ).first();
+      if (await el.isVisible({ timeout: 3000 }).catch(() => false)) {
+        themeEl = el;
+        console.log(`[test] 找到主题切换入口: "${kw}"`);
+        break;
+      }
+    }
+
+    expect.soft(themeEl !== null).toBe(true);
+
+    if (themeEl) {
+      const bgBefore = await page.evaluate(() => getComputedStyle(document.body).backgroundColor);
+      console.log(`[test] 切换前背景色: ${bgBefore}`);
+
+      await themeEl.click();
+      await page.waitForTimeout(1000);
+
+      const bgAfter = await page.evaluate(() => getComputedStyle(document.body).backgroundColor);
+      const bodyClass = await page.locator('body').getAttribute('class') ?? '';
+      const htmlClass = await page.locator('html').getAttribute('class') ?? '';
+      const hasDarkClass = /dark|night/i.test(bodyClass + htmlClass);
+      const hasLightClass = /light|day/i.test(bodyClass + htmlClass);
+      const colorChanged = bgBefore !== bgAfter;
+
+      console.log(`[test] 切换后背景色: ${bgAfter}, 颜色变化: ${colorChanged}, dark: ${hasDarkClass}, light: ${hasLightClass}`);
+      expect.soft(colorChanged || hasDarkClass || hasLightClass).toBe(true);
+    } else {
+      console.log('[test] ⚠️ 未找到主题切换元素，跳过');
+    }
+
+    await page.screenshot({ path: `test-results/settings-theme-${Date.now()}.png` });
+    console.log('[test] ✅ 主题切换验证完成');
+  });
+
+
+  // ========================================================
+  // 测试 5：验证通知设置可用
   // ========================================================
   test('验证通知设置可用', async ({ loggedInPage: page }) => {
-    // 复用 test 3 已打开的页面，无需重新导航
-
     const notifKeywords = ['通知', 'Notifications', '推送', 'Push', '邮件', 'Email'];
     let notifEl = null;
 
