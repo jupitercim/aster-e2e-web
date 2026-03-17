@@ -25,10 +25,13 @@ export const test = base.extend<{}, {
       ],
     });
 
-    // 灰度环境路由：如果设置了 K8S_CLUSTER，给所有请求注入对应 header
-    if (process.env.K8S_CLUSTER) {
-      await context.setExtraHTTPHeaders({ k8scluster: process.env.K8S_CLUSTER });
-      console.log(`[auth] 已注入请求 header: k8scluster=${process.env.K8S_CLUSTER}`);
+    // 灰度环境路由：注入自定义 headers（K8S_CLUSTER / X_GRAY_ENV）
+    const extraHeaders: Record<string, string> = {};
+    if (process.env.K8S_CLUSTER)  extraHeaders['k8scluster']  = process.env.K8S_CLUSTER;
+    if (process.env.X_GRAY_ENV)   extraHeaders['x-gray-env']  = process.env.X_GRAY_ENV;
+    if (Object.keys(extraHeaders).length > 0) {
+      await context.setExtraHTTPHeaders(extraHeaders);
+      console.log(`[auth] 已注入请求 headers: ${JSON.stringify(extraHeaders)}`);
     }
 
     await use(context);
