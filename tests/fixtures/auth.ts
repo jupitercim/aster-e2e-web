@@ -119,61 +119,75 @@ export const test = base.extend<{}, {
     await page.waitForLoadState('domcontentloaded');
     await page.waitForTimeout(2000);
 
-    // 先注册弹窗监听，再触发连接
-    const popupPromise = context.waitForEvent('page', { timeout: 30000 });
+    // 检查是否需要连接钱包（已连接则跳过整个连接流程）
+    const connectWalletBtn = page.locator('text=连接钱包').first();
+    const needsConnect = await connectWalletBtn.isVisible({ timeout: 3000 }).catch(() => false);
 
-    // 点击"连接钱包"按钮
-    await page.locator('text=连接钱包').first().click();
-    await page.waitForTimeout(1000);
+    if (needsConnect) {
+      // 先注册弹窗监听，再触发连接
+      const popupPromise = context.waitForEvent('page', { timeout: 30000 });
 
-    // 在弹窗中选择 MetaMask
-    await page.locator('text=MetaMask').click();
+      // 点击"连接钱包"按钮
+      await connectWalletBtn.click();
+      await page.waitForTimeout(1000);
 
-    // ===== MetaMask 授权连接 =====
-    const popup = await popupPromise;
-    await popup.waitForLoadState();
-    await popup.waitForTimeout(2000);
-
-    // MetaMask 弹窗可能显示解锁界面，先解锁再继续
-    const popupUnlockInput = popup.locator('[data-testid="unlock-password"]');
-    if (await popupUnlockInput.isVisible({ timeout: 3000 }).catch(() => false)) {
-      await popupUnlockInput.fill(TEST_PASSWORD);
-      await popup.locator('[data-testid="unlock-submit"]').click();
-      await popup.waitForTimeout(2000);
-      console.log('[auth] MetaMask 弹窗已解锁');
-    }
-
-    // 用 data-testid 精确点击连接按钮（兼容多个版本）
-    const connectSelectors = [
-      '[data-testid="page-container-footer-next"]',
-      '[data-testid="confirmation-submit-button"]',
-      '[data-testid="confirm-btn"]',
-      'button:has-text("连接")',
-      'button:has-text("Connect")',
-    ];
-
-    for (const selector of connectSelectors) {
-      const btn = popup.locator(selector).first();
-      if (await btn.isVisible({ timeout: 2000 }).catch(() => false)) {
-        await btn.click();
-        console.log(`[auth] 点击了连接按钮: ${selector}`);
-        break;
+      // 在弹窗中选择 MetaMask（如果钱包选择弹窗出现）
+      const metaMaskOption = page.locator('text=MetaMask').first();
+      const hasMetaMaskOption = await metaMaskOption.isVisible({ timeout: 5000 }).catch(() => false);
+      if (hasMetaMaskOption) {
+        await metaMaskOption.click();
       }
-    }
 
-    // 用主页等待，避免 popup 已关闭时竞态报错
-    await page.waitForTimeout(2000);
+      // ===== MetaMask 授权连接 =====
+      const popup = await popupPromise.catch(() => null);
+      if (popup) {
+        await popup.waitForLoadState();
+        await popup.waitForTimeout(2000);
 
-    // 如果弹窗还在，可能有第二步确认（如切换网络）
-    if (!popup.isClosed()) {
-      for (const selector of connectSelectors) {
-        const btn = popup.locator(selector).first();
-        if (await btn.isVisible({ timeout: 2000 }).catch(() => false)) {
-          await btn.click();
-          console.log(`[auth] 点击了第二步确认: ${selector}`);
-          break;
+        // MetaMask 弹窗可能显示解锁界面，先解锁再继续
+        const popupUnlockInput = popup.locator('[data-testid="unlock-password"]');
+        if (await popupUnlockInput.isVisible({ timeout: 3000 }).catch(() => false)) {
+          await popupUnlockInput.fill(TEST_PASSWORD);
+          await popup.locator('[data-testid="unlock-submit"]').click();
+          await popup.waitForTimeout(2000);
+          console.log('[auth] MetaMask 弹窗已解锁');
+        }
+
+        // 用 data-testid 精确点击连接按钮（兼容多个版本）
+        const connectSelectors = [
+          '[data-testid="page-container-footer-next"]',
+          '[data-testid="confirmation-submit-button"]',
+          '[data-testid="confirm-btn"]',
+          'button:has-text("连接")',
+          'button:has-text("Connect")',
+        ];
+
+        for (const selector of connectSelectors) {
+          const btn = popup.locator(selector).first();
+          if (await btn.isVisible({ timeout: 2000 }).catch(() => false)) {
+            await btn.click();
+            console.log(`[auth] 点击了连接按钮: ${selector}`);
+            break;
+          }
+        }
+
+        // 用主页等待，避免 popup 已关闭时竞态报错
+        await page.waitForTimeout(2000);
+
+        // 如果弹窗还在，可能有第二步确认（如切换网络）
+        if (!popup.isClosed()) {
+          for (const selector of connectSelectors) {
+            const btn = popup.locator(selector).first();
+            if (await btn.isVisible({ timeout: 2000 }).catch(() => false)) {
+              await btn.click();
+              console.log(`[auth] 点击了第二步确认: ${selector}`);
+              break;
+            }
+          }
         }
       }
+    } else {
+      console.log('[auth] 钱包已连接，跳过连接步骤');
     }
 
     // ===== 第三步：交易所"建立连接"弹窗 + MetaMask 签名 =====
