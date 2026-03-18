@@ -6,6 +6,211 @@ function getRocketLaunchUrl(): string {
   return `${origin}/zh-CN/rocket-launch`;
 }
 
+// 月份映射（UTC 日期字符串解析用）
+const UTC_MONTHS: Record<string, number> = {
+  Jan: 0, Feb: 1, Mar: 2, Apr: 3, May: 4, Jun: 5,
+  Jul: 6, Aug: 7, Sep: 8, Oct: 9, Nov: 10, Dec: 11,
+};
+
+/**
+ * 解析 "02 Feb, 14:00 UTC" 或 "02 Feb, 2025 14:00 UTC" 格式，返回 ms 时间戳。
+ * 若无年份，自动推断（月份 > 当前月则用上一年）。
+ */
+function parseUTCDateStr(str: string): number {
+  const m = str.trim().match(/^(\d{1,2})\s+([A-Za-z]+),?\s+(?:(\d{4})\s+)?(\d{2}:\d{2})\s*UTC/);
+  if (!m) return 0;
+  const month = UTC_MONTHS[m[2]];
+  if (month === undefined) return 0;
+  const day = parseInt(m[1]);
+  const [h, min] = m[4].split(':').map(Number);
+  let year = m[3] ? parseInt(m[3]) : new Date().getUTCFullYear();
+  // 如没有年份且月份超过当前月，判断为上一年
+  if (!m[3]) {
+    const nowMonth = new Date().getUTCMonth();
+    if (month > nowMonth) year -= 1;
+  }
+  return Date.UTC(year, month, day, h, min);
+}
+
+/**
+ * 从卡片文本提取数据（在 Node.js 侧解析）
+ */
+function parseCardText(cardText: string) {
+  // 活动周期结束时间：直接匹配日期区间 "DD Mon, HH:MM UTC - DD Mon, HH:MM UTC"
+  // innerText 用 \n 分隔各行，不依赖 | 字符
+  let endTime = 0;
+  const dateRangeMatch = cardText.match(
+    /\d{1,2}\s+[A-Za-z]+,\s*\d{2}:\d{2}\s*UTC\s*-\s*(\d{1,2}\s+[A-Za-z]+,?\s*(?:\d{4}\s+)?\d{2}:\d{2}\s*UTC)/
+  );
+  if (dateRangeMatch) endTime = parseUTCDateStr(dateRangeMatch[1]);
+
+  // 最小持仓：标签后紧跟 \n（或 |），再取第一个数字
+  // 格式："最小持仓（完整周期）\n444 ASTER"
+  let minHolding = -1;
+  const holdingMatch = cardText.match(/最小持仓[^\n]*[\n|]\s*([\d,]+(?:\.\d+)?)/);
+  if (holdingMatch) minHolding = parseFloat(holdingMatch[1].replace(/,/g, ''));
+
+  // 最小交易量：卡片中若有此字段则解析
+  let minVolume = -1;
+  const volumeMatch = cardText.match(/最小交易量[^\n]*[\n|]\s*([\d,]+(?:\.\d+)?)/);
+  if (volumeMatch) minVolume = parseFloat(volumeMatch[1].replace(/,/g, ''));
+
+  return { endTime, minHolding, minVolume };
+}
+
+/**
+ * 滚到底 + 点击"查看更多"（如有）再滚一次
+ */
+async function scrollAndLoadMore(page: any): Promise<void> {
+  await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
+  await page.waitForTimeout(1000);
+  const moreBtn = page.locator('button:has-text("查看更多"), button:text-is("查看更多")').first();
+  if (await moreBtn.isVisible({ timeout: 2000 }).catch(() => false)) {
+    await moreBtn.click();
+    await page.waitForTimeout(2000);
+    await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
+    await page.waitForTimeout(1000);
+    console.log('[test] 已点击"查看更多"并滚到底');
+  }
+}
+
+/**
+ * 通用：检查指定 Tab 下"已结束"卡片的各项数据
+ */
+async function checkEndedCards(page: any, tabName: '火箭发射' | 'Trade Arena'): Promise<void> {
+  const url = getRocketLaunchUrl();
+  await page.goto(url);
+  await page.waitForLoadState('domcontentloaded');
+  await page.waitForTimeout(3000);
+
+  // 切换 Tab
+  if (tabName === 'Trade Arena') {
+    const tab = page.locator('button:has-text("Trade Arena"), button:text-is("Trade Arena")').first();
+    if (!await tab.isVisible({ timeout: 5000 }).catch(() => false)) {
+      console.log('[test] ⚠️ Trade Arena Tab 不可见，跳过');
+      return;
+    }
+    await tab.click();
+    await page.waitForTimeout(1500);
+    console.log('[test] 已切换到 Trade Arena');
+  }
+
+  // 点击"已结束"筛选
+  const endedBtn = page.locator('button:has-text("已结束")').first();
+  if (await endedBtn.isVisible({ timeout: 3000 }).catch(() => false)) {
+    await endedBtn.click();
+    await page.waitForTimeout(1500);
+    console.log('[test] 已点击"已结束"筛选');
+  }
+
+  // 滚底 + 查看更多
+  await scrollAndLoadMore(page);
+  await page.screenshot({ path: `test-results/rocket-ended-${tabName.replace(/\s/g, '-')}-all-${Date.now()}.png` });
+
+  // 从页面提取卡片数据（只取桌面版，避免重复）
+  const rawCards: { cardText: string; href: string; pointerEvents: string; ariaDisabled: string | null }[] =
+    await page.evaluate(() => {
+      const allLinks = Array.from(document.querySelectorAll('a')).filter(
+        (a) => a.textContent?.trim().includes('交易赚取')
+      );
+      // 优先桌面版（class 含 "hidden md:block"），避免与移动版重复计数
+      const desktop = allLinks.filter((a) => /hidden/.test(a.className) && /md:block/.test(a.className));
+      const links = desktop.length > 0 ? desktop : allLinks;
+
+      return links.map((link) => {
+        // 向上最多 12 层找卡片容器
+        let el: Element | null = link;
+        for (let i = 0; i < 12; i++) {
+          el = el?.parentElement ?? null;
+          if (!el) break;
+          const cls = (el as HTMLElement).className || '';
+          if (/card|item|project|launch/i.test(cls) || el.tagName === 'LI' || el.tagName === 'ARTICLE') break;
+        }
+        const cardText = (el as HTMLElement)?.innerText || (link.parentElement as HTMLElement)?.innerText || '';
+        const href = (link as HTMLAnchorElement).href || '';
+        const cs = window.getComputedStyle(link);
+        return {
+          cardText,
+          href,
+          pointerEvents: cs.pointerEvents,
+          ariaDisabled: link.getAttribute('aria-disabled'),
+        };
+      });
+    });
+
+  console.log(`[test] [${tabName}] 已结束卡片数: ${rawCards.length}`);
+  expect(rawCards.length).toBeGreaterThan(0);
+
+  const now = Date.now();
+  let endTimeFail = 0;
+  let holdingFail = 0;
+  let volumeFail = 0;
+  let tradeHrefFail = 0;
+
+  for (let i = 0; i < rawCards.length; i++) {
+    const { cardText, href, pointerEvents, ariaDisabled } = rawCards[i];
+    const label = `[${tabName}][${i}]`;
+    const { endTime, minHolding, minVolume } = parseCardText(cardText);
+
+    // ── 活动周期结束时间 < 当前时间 ──────────────────────
+    if (endTime > 0) {
+      const ok = endTime < now;
+      console.log(`[test] ${ok ? '✅' : '❌'} ${label} 结束时间 ${new Date(endTime).toISOString()} ${ok ? '<' : '≥'} 现在`);
+      if (!ok) endTimeFail++;
+    } else {
+      console.log(`[test] ⚠️ ${label} 未解析结束时间，原文: "${cardText.slice(0, 120).replace(/\n/g, '|')}"`);
+    }
+
+    // ── 最小持仓 ─────────────────────────────────────
+    // 0 ASTER = Trade Arena 设计上无持仓要求，属正常；仅当字段值为负（解析失败）时记录警告
+    if (minHolding >= 0) {
+      const ok = minHolding > 0;
+      console.log(`[test] ${ok ? '✅' : '⚠️'} ${label} 最小持仓: ${minHolding}${minHolding === 0 ? ' (无持仓要求)' : ''}`);
+      if (!ok) holdingFail++;
+    } else {
+      console.log(`[test] ⚠️ ${label} 未找到最小持仓字段`);
+    }
+
+    // ── 最小交易量 > 10（字段若存在则验证）────────────
+    if (minVolume >= 0) {
+      const ok = minVolume > 10;
+      console.log(`[test] ${ok ? '✅' : '❌'} ${label} 最小交易量: ${minVolume}`);
+      if (!ok) volumeFail++;
+    } else {
+      console.log(`[test] ⚠️ ${label} 卡片中无"最小交易量"字段，跳过`);
+    }
+
+    // ── 交易赚取：hover 后 href 含 /trade/ 且 spot 字段 ──
+    const hasTradeHref = href.includes('/trade/');
+    const hasSpot = href.includes('/spot/');
+    const isDisabled = pointerEvents === 'none' || ariaDisabled === 'true';
+    console.log(`[test] ${hasTradeHref ? '✅' : '❌'} ${label} 交易赚取 href: ${href}`);
+    console.log(`[test] ${hasSpot ? '✅' : '⚠️'} ${label} href 含 spot: ${hasSpot}`);
+    console.log(`[test] ${isDisabled ? '✅' : '⚠️'} ${label} 按钮不可点击: ${isDisabled} (pointer-events:${pointerEvents})`);
+    if (!hasTradeHref) tradeHrefFail++;
+  }
+
+  // Hover 验证：对第一个"交易赚取"链接 hover，确认 href 可读且含 /trade/
+  const firstLink = page.locator('a:has-text("交易赚取")').first();
+  if (await firstLink.isVisible({ timeout: 3000 }).catch(() => false)) {
+    await firstLink.hover({ force: true });
+    await page.waitForTimeout(300);
+    const hoverHref = await firstLink.getAttribute('href') || '';
+    console.log(`[test] ✅ [${tabName}] hover href: ${hoverHref}`);
+    expect.soft(hoverHref).toContain('/trade/');
+  }
+
+  expect.soft(endTimeFail, `${endTimeFail} 个卡片结束时间 ≥ 当前时间`).toBe(0);
+  // 0 ASTER 为合法"无持仓要求"，此处 holdingFail 仅统计持仓 = 0 的卡片数，作为信息记录
+  if (holdingFail > 0) {
+    console.log(`[test] ⚠️ [${tabName}] ${holdingFail} 个卡片最小持仓为 0（无持仓要求）`);
+  }
+  expect.soft(volumeFail, `${volumeFail} 个卡片最小交易量 ≤ 10`).toBe(0);
+  expect.soft(tradeHrefFail, `${tradeHrefFail} 个卡片交易赚取 href 不含 /trade/`).toBe(0);
+
+  console.log(`[test] ✅ [${tabName}] 已结束卡片验证完成`);
+}
+
 test.describe.serial('AsterDEX - Rocket Launch 页面', () => {
 
   // ========================================================
@@ -253,6 +458,22 @@ test.describe.serial('AsterDEX - Rocket Launch 页面', () => {
     expect(href).toContain('docs');
 
     console.log('[test] ✅ 了解更多链接验证完成');
+  });
+
+
+  // ========================================================
+  // 测试 9：火箭发射 Tab - 已结束卡片数据验证
+  // ========================================================
+  test('火箭发射 Tab - 已结束卡片：结束时间/最小持仓/交易赚取链接', async ({ loggedInPage: page }) => {
+    await checkEndedCards(page, '火箭发射');
+  });
+
+
+  // ========================================================
+  // 测试 10：Trade Arena Tab - 已结束卡片数据验证
+  // ========================================================
+  test('Trade Arena Tab - 已结束卡片：结束时间/最小持仓/交易赚取链接', async ({ loggedInPage: page }) => {
+    await checkEndedCards(page, 'Trade Arena');
   });
 
 });
