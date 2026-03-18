@@ -74,11 +74,11 @@ async function hasNumericNearSymbol(page: any, symbol: string): Promise<boolean>
   return false;
 }
 
-/** 辅助：hover 打开 More Resources 下拉菜单，返回是否成功 */
+/** 辅助：hover 打开"更多"下拉菜单，返回是否成功 */
 async function openResourcesMenu(page: any): Promise<boolean> {
-  const navKeywords = ['More Resources', '更多资源', 'Resources', '资源'];
-  for (const kw of navKeywords) {
-    const el = page.locator(`text=${kw}`).first();
+  // 优先找顶部导航"更多/More"按钮（精确匹配，避免误匹配其他元素）
+  for (const kw of ['更多', 'More']) {
+    const el = page.locator(`text="${kw}"`).first();
     if (await el.isVisible({ timeout: 3000 }).catch(() => false)) {
       await el.hover();
       await page.waitForTimeout(800);
@@ -451,8 +451,8 @@ test.describe.serial('AsterDEX - More Resources 页面', () => {
       await newTab.waitForLoadState('domcontentloaded').catch(() => {});
       await newTab.waitForTimeout(1000);
 
-      const has404 = await newTab.locator('text=404').isVisible({ timeout: 1000 }).catch(() => false);
-      const has500 = await newTab.locator('text=500').isVisible({ timeout: 1000 }).catch(() => false);
+      const has404 = await newTab.locator('h1:text-is("404"), text=404 Not Found').isVisible({ timeout: 1000 }).catch(() => false);
+      const has500 = await newTab.locator('h1:text-is("500"), text=Internal Server Error').isVisible({ timeout: 1000 }).catch(() => false);
       expect.soft(has404).toBe(false);
       expect.soft(has500).toBe(false);
 
