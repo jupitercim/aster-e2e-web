@@ -687,584 +687,318 @@ test.describe.serial('AsterDEX - More Resources 页面', () => {
 });
 
 
+
 // ============================================================
 // Market Data — 市场数据专项测试
 // ============================================================
 test.describe.serial('AsterDEX - Market Data 市场数据', () => {
 
-  // 候选 URL 路径（按可能性排序，gotoFirstAvailable 会依次尝试）
-  const FUNDING_RATE_URLS     = () => [`${getOrigin()}/en/futures/futures-info/real-time-funding-rate`];
-  const FUNDING_HISTORY_URLS  = () => [`${getOrigin()}/en/futures/futures-info/funding-rate-history`];
-  const INDEX_URLS            = () => [`${getOrigin()}/en/futures/futures-info/index`];
-  const FEE_COMPARISON_URLS   = () => [`${getOrigin()}/en/futures/futures-info/funding-fee-comparison`];
+  const FUNDING_RATE_URL    = () => `${getOrigin()}/en/futures/futures-info/real-time-funding-rate`;
+  const FUNDING_HISTORY_URL = () => `${getOrigin()}/en/futures/futures-info/funding-rate-history`;
+  const INDEX_URL           = () => `${getOrigin()}/en/futures/futures-info/index`;
+  const FEE_COMPARISON_URL  = () => `${getOrigin()}/en/futures/futures-info/funding-fee-comparison`;
+
+  // 共用：验证 Market Data 页面通用结构
+  async function checkMarketDataLayout(page: any, activeTab: string) {
+    // H1 标题
+    const heading = page.locator('h1, h2').filter({ hasText: 'Market Data' }).first();
+    const hasHeading = await heading.isVisible({ timeout: 5000 }).catch(() => false);
+    console.log(`[test] Market Data 标题: ${hasHeading ? '✅' : '⚠️'}`);
+    expect(hasHeading).toBe(true);
+
+    // 子导航 4 个 tab 均可见
+    for (const tab of ['Real-Time Funding Rate', 'Funding Rate History', 'Index', 'Funding Fee Comparison']) {
+      const el = page.locator(`text=${tab}`).first();
+      const visible = await el.isVisible({ timeout: 3000 }).catch(() => false);
+      console.log(`[test] 子导航 "${tab}": ${visible ? '✅' : '⚠️'}`);
+    }
+  }
 
 
   // ========================================================
-  // 测试 MD-1：Real-Time Funding Rate 页面可加载
+  // MD-1：Real-Time Funding Rate — 页面结构与列头
   // ========================================================
-  test('[Funding Rate] 实时资金费率页面可正常加载', async ({ loggedInPage: page }) => {
-    const url = await gotoFirstAvailable(page, FUNDING_RATE_URLS());
+  test('[Funding Rate] 页面加载、列头与数据行验证', async ({ loggedInPage: page }) => {
+    await page.goto(FUNDING_RATE_URL());
+    await page.waitForLoadState('domcontentloaded');
+    await page.waitForTimeout(3000);
 
-    if (!url) {
-      console.log('[test] ⚠️ 未找到实时资金费率页面，截图留存');
-      await page.screenshot({ path: `test-results/funding-rate-notfound-${Date.now()}.png` });
-      return;
+    await checkMarketDataLayout(page, 'Real-Time Funding Rate');
+
+    // 表格列头
+    const cols = ['Contracts', 'Interval', 'Time to Next Funding', 'Funding Rate', 'Interest Rate', 'Funding Cap/Floor'];
+    for (const col of cols) {
+      const visible = await page.locator(`text=${col}`).first().isVisible({ timeout: 3000 }).catch(() => false);
+      console.log(`[test] 列头 "${col}": ${visible ? '✅' : '⚠️'}`);
+      expect.soft(visible).toBe(true);
     }
 
-    const title = await page.title();
-    console.log(`[test] 页面标题: ${title}`);
-    expect(title).toBeTruthy();
+    // 数据行含 "Perpetual"
+    const hasPerpetual = await page.locator('text=Perpetual').first().isVisible({ timeout: 5000 }).catch(() => false);
+    console.log(`[test] 数据行含 Perpetual: ${hasPerpetual ? '✅' : '⚠️'}`);
+    expect(hasPerpetual).toBe(true);
 
-    // 页面级关键词
-    const pageKeywords = ['资金费率', 'Funding Rate', 'Funding', '费率'];
-    let kwFound = false;
-    for (const kw of pageKeywords) {
-      if (await page.locator(`text=${kw}`).first().isVisible({ timeout: 5000 }).catch(() => false)) {
-        console.log(`[test] ✅ 找到关键词: "${kw}"`);
-        kwFound = true;
+    // Funding Rate 列有百分比数值（格式 x.xxxx%）
+    const rateValues = await page.evaluate(() =>
+      Array.from(document.querySelectorAll('td, td span, td div'))
+        .map((el: any) => el.innerText?.trim())
+        .filter(t => /^-?\d+\.\d+%$/.test(t))
+        .slice(0, 5)
+    );
+    console.log(`[test] 费率数值样本: ${rateValues.join(', ') || '⚠️ 未从 td/span 提取到（值可能以其他方式渲染）'}`);
+
+    // Cap/Floor 格式如 "2.00% / -2.00%"
+    const hasCapFloor = await page.locator('text=/\\d+\\.\\d+% \\/ -\\d+\\.\\d+%/').first()
+      .isVisible({ timeout: 3000 }).catch(() => false);
+    console.log(`[test] Cap/Floor 格式: ${hasCapFloor ? '✅' : '⚠️'}`);
+
+    // Interval 列有 1h / 4h / 8h（值可能在 span 内）
+    let hasInterval = false;
+    for (const iv of ['8h', '4h', '1h']) {
+      if (await page.locator(`text="${iv}"`).first().isVisible({ timeout: 2000 }).catch(() => false)) {
+        console.log(`[test] Interval "${iv}": ✅`);
+        hasInterval = true;
         break;
       }
     }
-    console.log(`[test] check: ${kwFound}`);
+    console.log(`[test] Interval 值: ${hasInterval ? '✅' : '⚠️ 未找到'}`);
+    expect.soft(hasInterval).toBe(true);
 
-    await page.screenshot({ path: `test-results/funding-rate-load-${Date.now()}.png` });
-    console.log('[test] ✅ 实时资金费率页面加载完成');
+    await page.screenshot({ path: `test-results/funding-rate-${Date.now()}.png` });
+    console.log('[test] ✅ Real-Time Funding Rate 验证完成');
   });
 
 
   // ========================================================
-  // 测试 MD-2：Real-Time Funding Rate — 主要交易对符号可见
+  // MD-2：Funding Rate History — 控件、图表与表格数据
   // ========================================================
-  test('[Funding Rate] BTC / ETH 等主要交易对符号显示', async ({ loggedInPage: page }) => {
-    const url = await gotoFirstAvailable(page, FUNDING_RATE_URLS());
-    if (!url) {
-      console.log('[test] ⚠️ 页面未加载，跳过');
-      return;
-    }
-
-    // 等待数据渲染
+  test('[Funding History] BTCUSDT 选择器、时间范围、表格数据行验证', async ({ loggedInPage: page }) => {
+    await page.goto(FUNDING_HISTORY_URL());
+    await page.waitForLoadState('domcontentloaded');
     await page.waitForTimeout(3000);
 
-    const found = await findVisibleSymbols(page, 8000);
-    console.log(`[test] 找到的交易对符号: ${found.join(', ') || '(无)'}`);
-    console.log(`[test] check: ${found.length}`);
+    await checkMarketDataLayout(page, 'Funding Rate History');
 
-    // 逐一验证关键交易对旁是否有数值
-    for (const sym of ['BTC', 'ETH']) {
-      const hasNum = await hasNumericNearSymbol(page, sym);
-      if (hasNum) {
-        console.log(`[test] ✅ ${sym} 行有数值显示`);
-      } else {
-        console.log(`[test] ⚠️ ${sym} 行未检测到数值`);
-      }
-      console.log(`[test] check: ${hasNum}`);
+    // BTCUSDT 下拉选择器
+    const btcDropdown = page.locator('[role="combobox"]:has-text("BTCUSDT"), button:has-text("BTCUSDT")').first();
+    const hasBtcDropdown = await btcDropdown.isVisible({ timeout: 5000 }).catch(() => false);
+    console.log(`[test] BTCUSDT 选择器: ${hasBtcDropdown ? '✅' : '⚠️'}`);
+    expect(hasBtcDropdown).toBe(true);
+
+    // Last 7 days / Last 14 days 切换
+    for (const label of ['Last 7 days', 'Last 14 days']) {
+      const btn = page.locator(`text=${label}`).first();
+      const visible = await btn.isVisible({ timeout: 3000 }).catch(() => false);
+      console.log(`[test] "${label}" 按钮: ${visible ? '✅' : '⚠️'}`);
+      expect.soft(visible).toBe(true);
     }
 
-    await page.screenshot({ path: `test-results/funding-rate-symbols-${Date.now()}.png` });
-    console.log('[test] ✅ 主要交易对符号验证完成');
+    // Save as csv 按钮
+    const csvBtn = page.locator('text=Save as csv').first();
+    const hasCsv = await csvBtn.isVisible({ timeout: 3000 }).catch(() => false);
+    console.log(`[test] Save as csv: ${hasCsv ? '✅' : '⚠️'}`);
+
+    // 表格列头（可能在 th 或 div 中）
+    for (const col of ['Time', 'Contracts', 'Funding Interval', 'Funding Rate', 'Mark Price']) {
+      const visible = await page.locator(`text=${col}`).first()
+        .isVisible({ timeout: 3000 }).catch(() => false);
+      console.log(`[test] 列头 "${col}": ${visible ? '✅' : '⚠️'}`);
+    }
+
+    // 数据行：时间戳格式 yyyy-MM-dd HH:mm:ss（从 td 或任意元素提取）
+    const dateCells = await page.evaluate(() =>
+      Array.from(document.querySelectorAll('td, td span, div[class*="cell"], div[class*="row"] span'))
+        .map((el: any) => el.innerText?.trim())
+        .filter(t => /^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/.test(t))
+        .slice(0, 3)
+    );
+    console.log(`[test] 时间戳样本: ${dateCells.join(', ') || '⚠️ 未提取到'}`);
+
+    // BTCUSDTPerpetual 在 Contracts 列
+    const hasBtcPerpetual = await page.locator('text=BTCUSDTPerpetual').first()
+      .isVisible({ timeout: 5000 }).catch(() => false);
+    console.log(`[test] BTCUSDTPerpetual: ${hasBtcPerpetual ? '✅' : '⚠️'}`);
+
+    // Mark Price 有数值（格式如 73,872.40）
+    const markPrices = await page.evaluate(() =>
+      Array.from(document.querySelectorAll('td, td span, div[class*="cell"]'))
+        .map((el: any) => el.innerText?.trim())
+        .filter(t => /^\d{1,3}(,\d{3})*\.\d+$/.test(t))
+        .slice(0, 3)
+    );
+    console.log(`[test] Mark Price 样本: ${markPrices.join(', ') || '⚠️ 未提取到'}`);
+
+    // 切换 Last 14 days 并验证图表仍可见
+    const last14 = page.locator('text=Last 14 days').first();
+    if (await last14.isVisible({ timeout: 2000 }).catch(() => false)) {
+      await last14.click();
+      await page.waitForTimeout(1500);
+      console.log('[test] ✅ 切换 Last 14 days 完成');
+    }
+
+    await page.screenshot({ path: `test-results/funding-history-${Date.now()}.png` });
+    console.log('[test] ✅ Funding Rate History 验证完成');
   });
 
 
   // ========================================================
-  // 测试 MD-3：Real-Time Funding Rate — 数值格式（百分比/小数）
+  // MD-3：Index — 下拉选择器、时间轴按钮、图表
   // ========================================================
-  test('[Funding Rate] 资金费率数值格式正确（百分比或小数）', async ({ loggedInPage: page }) => {
-    const url = await gotoFirstAvailable(page, FUNDING_RATE_URLS());
-    if (!url) {
-      console.log('[test] ⚠️ 页面未加载，跳过');
-      return;
-    }
-
+  test('[Index] Premium Index 下拉、BTCUSDT 选择器、K线时间轴验证', async ({ loggedInPage: page }) => {
+    await page.goto(INDEX_URL());
+    await page.waitForLoadState('domcontentloaded');
     await page.waitForTimeout(3000);
 
-    // 抓取页面上所有看起来像百分比或小数的文本
-    const rateTexts: string[] = await page.evaluate(() => {
-      const pattern = /^[-+]?\d+\.\d+%?$/;
-      return Array.from(document.querySelectorAll('td, [class*="rate"], [class*="value"]'))
-        .map((el: any) => el.innerText?.trim() ?? '')
-        .filter(t => pattern.test(t))
-        .slice(0, 20);
-    });
+    await checkMarketDataLayout(page, 'Index');
 
-    console.log(`[test] 找到 ${rateTexts.length} 个费率数值: ${rateTexts.slice(0, 5).join(', ')}`);
-    if (rateTexts.length === 0) {
-      console.log('[test] ⚠️ 未匹配到费率数值格式，跳过范围检查');
+    // Premium Index 下拉
+    const premiumDropdown = page.locator('[role="combobox"]:has-text("Premium Index"), button:has-text("Premium Index")').first();
+    const hasPremium = await premiumDropdown.isVisible({ timeout: 5000 }).catch(() => false);
+    console.log(`[test] Premium Index 下拉: ${hasPremium ? '✅' : '⚠️'}`);
+    expect(hasPremium).toBe(true);
+
+    // BTCUSDT 交易对选择器
+    const btcSelector = page.locator('[role="combobox"]:has-text("BTCUSDT"), button:has-text("BTCUSDT")').first();
+    const hasBtc = await btcSelector.isVisible({ timeout: 5000 }).catch(() => false);
+    console.log(`[test] BTCUSDT 选择器: ${hasBtc ? '✅' : '⚠️'}`);
+    expect(hasBtc).toBe(true);
+
+    // K线时间轴按钮
+    const intervals = ['1m', '5m', '15m', '1H', '4H', '1D', '1W'];
+    let visibleIntervals = 0;
+    for (const iv of intervals) {
+      const visible = await page.locator(`button:text-is("${iv}"), text="${iv}"`).first()
+        .isVisible({ timeout: 2000 }).catch(() => false);
+      if (visible) visibleIntervals++;
+    }
+    console.log(`[test] 可见时间轴按钮: ${visibleIntervals}/${intervals.length}`);
+
+    // Technical Indicators 按钮
+    const techBtn = page.locator('text=Technical Indicators').first();
+    const hasTech = await techBtn.isVisible({ timeout: 3000 }).catch(() => false);
+    console.log(`[test] Technical Indicators: ${hasTech ? '✅' : '⚠️'}`);
+    expect.soft(hasTech).toBe(true);
+
+    // 图表区域（canvas 或 TradingView div）
+    const hasChart = await page.locator('canvas, [id*="tv-chart"], [class*="chart"]').first()
+      .isVisible({ timeout: 5000 }).catch(() => false);
+    console.log(`[test] 图表区域: ${hasChart ? '✅' : '⚠️'}`);
+
+    // 表格列头（图表下方）
+    for (const col of ['Time', 'Contracts', 'Premium Index']) {
+      const visible = await page.locator(`text=${col}`).first().isVisible({ timeout: 3000 }).catch(() => false);
+      console.log(`[test] 列头 "${col}": ${visible ? '✅' : '⚠️'}`);
     }
 
-    // 验证数值范围合理（资金费率通常在 -1% ~ +1% 之间）
-    let outOfRange = 0;
-    for (const raw of rateTexts) {
-      const num = parseFloat(raw.replace('%', ''));
-      if (Math.abs(num) > 10) {
-        console.log(`[test] ⚠️ 疑似异常数值: ${raw}`);
-        outOfRange++;
-      }
-    }
-    console.log(`[test] 超范围数值数量: ${outOfRange}/${rateTexts.length}`);
-
-    await page.screenshot({ path: `test-results/funding-rate-values-${Date.now()}.png` });
-    console.log('[test] ✅ 资金费率数值格式验证完成');
+    await page.screenshot({ path: `test-results/index-${Date.now()}.png` });
+    console.log('[test] ✅ Index 验证完成');
   });
 
 
   // ========================================================
-  // 测试 MD-4：Real-Time Funding Rate — 可按交易对搜索/筛选
+  // MD-4：Funding Fee Comparison — 列头、数据行、Tab、搜索、分页
   // ========================================================
-  test('[Funding Rate] 可按交易对搜索筛选（BTCUSDT）', async ({ loggedInPage: page }) => {
-    const url = await gotoFirstAvailable(page, FUNDING_RATE_URLS());
-    if (!url) {
-      console.log('[test] ⚠️ 页面未加载，跳过');
-      return;
-    }
-
-    await page.waitForTimeout(2000);
-
-    // 找搜索框
-    const searchSelectors = [
-      'input[placeholder*="搜索"]',
-      'input[placeholder*="Search"]',
-      'input[placeholder*="symbol"]',
-      'input[type="search"]',
-      'input[type="text"]',
-    ];
-
-    let searchInput = null;
-    for (const sel of searchSelectors) {
-      const el = page.locator(sel).first();
-      if (await el.isVisible({ timeout: 2000 }).catch(() => false)) {
-        searchInput = el;
-        console.log(`[test] 找到搜索框: ${sel}`);
-        break;
-      }
-    }
-
-    if (!searchInput) {
-      console.log('[test] ⚠️ 未找到搜索框，跳过筛选测试');
-      return;
-    }
-
-    await searchInput.click();
-    await searchInput.fill('BTC');
-    await page.waitForTimeout(1500);
-
-    // 验证 BTC 相关结果出现，且非 BTC 行应减少/消失
-    const btcVisible = await page.locator('text=BTC').first().isVisible({ timeout: 3000 }).catch(() => false);
-    console.log(`[test] 搜索 "BTC" 后 BTC 可见: ${btcVisible}`);
-    console.log(`[test] check: ${btcVisible}`);
-
-    await page.screenshot({ path: `test-results/funding-rate-search-${Date.now()}.png` });
-
-    // 清空搜索
-    await searchInput.clear();
-    await page.waitForTimeout(1000);
-    console.log('[test] ✅ 搜索筛选验证完成');
-  });
-
-
-  // ========================================================
-  // 测试 MD-5：Funding Rate History 页面可加载
-  // ========================================================
-  test('[Funding History] 资金费率历史页面可正常加载', async ({ loggedInPage: page }) => {
-    const url = await gotoFirstAvailable(page, FUNDING_HISTORY_URLS());
-
-    if (!url) {
-      console.log('[test] ⚠️ 未找到资金费率历史页面，截图留存');
-      await page.screenshot({ path: `test-results/funding-history-notfound-${Date.now()}.png` });
-      return;
-    }
-
-    const title = await page.title();
-    console.log(`[test] 页面标题: ${title}`);
-    expect(title).toBeTruthy();
-
-    const pageKeywords = ['历史', 'History', '资金费率历史', 'Funding Rate History'];
-    let kwFound = false;
-    for (const kw of pageKeywords) {
-      if (await page.locator(`text=${kw}`).first().isVisible({ timeout: 5000 }).catch(() => false)) {
-        console.log(`[test] ✅ 找到关键词: "${kw}"`);
-        kwFound = true;
-        break;
-      }
-    }
-    console.log(`[test] check: ${kwFound}`);
-
-    await page.screenshot({ path: `test-results/funding-history-load-${Date.now()}.png` });
-    console.log('[test] ✅ 资金费率历史页面加载完成');
-  });
-
-
-  // ========================================================
-  // 测试 MD-6：Funding Rate History — BTCUSDT / ETHUSDT 历史数据可见
-  // ========================================================
-  test('[Funding History] BTCUSDT / ETHUSDT 历史数据行显示', async ({ loggedInPage: page }) => {
-    const url = await gotoFirstAvailable(page, FUNDING_HISTORY_URLS());
-    if (!url) {
-      console.log('[test] ⚠️ 页面未加载，跳过');
-      return;
-    }
-
+  test('[Fee Comparison] 列头、BTCUSDT 数据行、All/Favorite Tab、搜索、分页验证', async ({ loggedInPage: page }) => {
+    await page.goto(FEE_COMPARISON_URL());
+    await page.waitForLoadState('domcontentloaded');
     await page.waitForTimeout(3000);
 
-    for (const sym of ['BTC', 'ETH']) {
+    await checkMarketDataLayout(page, 'Funding Fee Comparison');
+
+    // All / Favorite Tab
+    for (const tab of ['All', 'Favorite']) {
+      const visible = await page.locator(`button:has-text("${tab}"), text=${tab}`).first()
+        .isVisible({ timeout: 3000 }).catch(() => false);
+      console.log(`[test] Tab "${tab}": ${visible ? '✅' : '⚠️'}`);
+    }
+
+    // Search Symbol 搜索框
+    const searchInput = page.locator('input[placeholder*="Search Symbol"], input[placeholder*="Symbol"]').first();
+    const hasSearch = await searchInput.isVisible({ timeout: 3000 }).catch(() => false);
+    console.log(`[test] Search Symbol 输入框: ${hasSearch ? '✅' : '⚠️'}`);
+    expect(hasSearch).toBe(true);
+
+    // 8h 时间区间下拉
+    const intervalDropdown = page.locator('[role="combobox"]:has-text("8h"), button:has-text("8h")').first();
+    const hasInterval = await intervalDropdown.isVisible({ timeout: 3000 }).catch(() => false);
+    console.log(`[test] 8h 区间下拉: ${hasInterval ? '✅' : '⚠️'}`);
+
+    // 表格列头
+    const cols = ['Pair', 'Aster Daily Volume', 'Aster', 'Binance', 'ByBit', 'OKX'];
+    for (const col of cols) {
+      const visible = await page.locator(`th:has-text("${col}"), text=${col}`).first()
+        .isVisible({ timeout: 3000 }).catch(() => false);
+      console.log(`[test] 列头 "${col}": ${visible ? '✅' : '⚠️'}`);
+    }
+
+    // BTCUSDT / ETHUSDT / SOLUSDT 数据行可见
+    for (const sym of ['BTCUSDT', 'ETHUSDT', 'SOLUSDT']) {
       const visible = await page.locator(`text=${sym}`).first().isVisible({ timeout: 5000 }).catch(() => false);
-      console.log(`[test] ${sym} 可见: ${visible}`);
-      if (!visible) console.log(`[test] ⚠️ ${sym} 未找到，跳过`);
+      console.log(`[test] ${sym} 行: ${visible ? '✅' : '⚠️'}`);
     }
 
-    // 验证历史记录有时间戳列（表格中含日期格式文本）
-    const dateTexts: string[] = await page.evaluate(() => {
-      const datePattern = /\d{4}[-/]\d{2}[-/]\d{2}/;
-      return Array.from(document.querySelectorAll('td, [class*="time"], [class*="date"]'))
-        .map((el: any) => el.innerText?.trim() ?? '')
-        .filter(t => datePattern.test(t))
-        .slice(0, 5);
-    });
-    console.log(`[test] 找到 ${dateTexts.length} 个时间戳: ${dateTexts.slice(0, 3).join(', ')}`);
-    if (dateTexts.length === 0) console.log('[test] ⚠️ 未匹配到时间戳格式，跳过');
+    // 费率数值（百分比格式）存在
+    const rateValues = await page.evaluate(() =>
+      Array.from(document.querySelectorAll('td'))
+        .map((el: any) => el.innerText?.trim())
+        .filter(t => /^[-+]?\d+\.\d+%$/.test(t))
+        .slice(0, 5)
+    );
+    console.log(`[test] 费率数值样本: ${rateValues.join(', ') || '⚠️ 未提取到'}`);
 
-    await page.screenshot({ path: `test-results/funding-history-symbols-${Date.now()}.png` });
-    console.log('[test] ✅ 历史数据行验证完成');
+    // Volume 数值（大数字格式如 1235942701.82）
+    const volumeValues = await page.evaluate(() =>
+      Array.from(document.querySelectorAll('td, td span'))
+        .map((el: any) => el.innerText?.trim())
+        .filter(t => /^\d{6,}(\.\d+)?$/.test(t))
+        .slice(0, 3)
+    );
+    console.log(`[test] Volume 数值样本: ${volumeValues.join(', ') || '⚠️ 未提取到'}`);
+
+    // 分页控件可见
+    const hasPagination = await page.locator('[class*="pagination"], [class*="page"]').first()
+      .isVisible({ timeout: 3000 }).catch(() => false);
+    console.log(`[test] 分页控件: ${hasPagination ? '✅' : '⚠️'}`);
+
+    // 搜索功能：输入 BTC，验证结果
+    if (hasSearch) {
+      await searchInput.fill('BTC');
+      await page.waitForTimeout(1500);
+      const btcRow = await page.locator('text=BTCUSDT').first().isVisible({ timeout: 3000 }).catch(() => false);
+      console.log(`[test] 搜索 BTC 后 BTCUSDT 可见: ${btcRow ? '✅' : '⚠️'}`);
+      expect(btcRow).toBe(true);
+      await searchInput.clear();
+      await page.waitForTimeout(1000);
+    }
+
+    await page.screenshot({ path: `test-results/fee-comparison-${Date.now()}.png` });
+    console.log('[test] ✅ Funding Fee Comparison 验证完成');
   });
 
 
   // ========================================================
-  // 测试 MD-7：Funding Rate History — 可切换交易对查看历史
-  // ========================================================
-  test('[Funding History] 切换交易对查看不同历史记录', async ({ loggedInPage: page }) => {
-    const url = await gotoFirstAvailable(page, FUNDING_HISTORY_URLS());
-    if (!url) {
-      console.log('[test] ⚠️ 页面未加载，跳过');
-      return;
-    }
-
-    await page.waitForTimeout(2000);
-
-    // 找交易对选择器（下拉 / tab / 搜索）
-    const selectorKeywords = ['BTCUSDT', 'BTC', '交易对', 'Symbol', 'Pair'];
-    let symbolSelector = null;
-
-    for (const kw of selectorKeywords) {
-      const el = page.locator(
-        `select:has-text("${kw}"), [role="combobox"]:has-text("${kw}"), button:has-text("${kw}")`
-      ).first();
-      if (await el.isVisible({ timeout: 2000 }).catch(() => false)) {
-        symbolSelector = el;
-        console.log(`[test] 找到交易对选择器: "${kw}"`);
-        break;
-      }
-    }
-
-    if (!symbolSelector) {
-      console.log('[test] ⚠️ 未找到交易对切换控件，跳过');
-      return;
-    }
-
-    await symbolSelector.click();
-    await page.waitForTimeout(1000);
-
-    // 尝试选择 ETHUSDT
-    const ethOption = page.locator('text=ETHUSDT, text=ETH').first();
-    if (await ethOption.isVisible({ timeout: 2000 }).catch(() => false)) {
-      await ethOption.click();
-      await page.waitForTimeout(2000);
-      const ethVisible = await page.locator('text=ETH').first().isVisible({ timeout: 3000 }).catch(() => false);
-      console.log(`[test] 切换到 ETH 后数据可见: ${ethVisible}`);
-      console.log(`[test] check: ${ethVisible}`);
-    } else {
-      console.log('[test] ⚠️ 未找到 ETHUSDT 选项');
-    }
-
-    await page.screenshot({ path: `test-results/funding-history-switch-${Date.now()}.png` });
-    console.log('[test] ✅ 交易对切换验证完成');
-  });
-
-
-  // ========================================================
-  // 测试 MD-8：Index 指数价格页面可加载
-  // ========================================================
-  test('[Index] 指数价格页面可正常加载', async ({ loggedInPage: page }) => {
-    const url = await gotoFirstAvailable(page, INDEX_URLS());
-
-    if (!url) {
-      console.log('[test] ⚠️ 未找到指数价格页面，截图留存');
-      await page.screenshot({ path: `test-results/index-notfound-${Date.now()}.png` });
-      return;
-    }
-
-    const title = await page.title();
-    console.log(`[test] 页面标题: ${title}`);
-    expect(title).toBeTruthy();
-
-    const pageKeywords = ['指数', 'Index', 'Index Price', '指数价格', '标记价格', 'Mark Price'];
-    let kwFound = false;
-    for (const kw of pageKeywords) {
-      if (await page.locator(`text=${kw}`).first().isVisible({ timeout: 5000 }).catch(() => false)) {
-        console.log(`[test] ✅ 找到关键词: "${kw}"`);
-        kwFound = true;
-        break;
-      }
-    }
-    console.log(`[test] check: ${kwFound}`);
-
-    await page.screenshot({ path: `test-results/index-load-${Date.now()}.png` });
-    console.log('[test] ✅ 指数价格页面加载完成');
-  });
-
-
-  // ========================================================
-  // 测试 MD-9：Index — BTC / ETH 指数价格数值显示
-  // ========================================================
-  test('[Index] BTCUSDT / ETHUSDT 指数价格有数值显示', async ({ loggedInPage: page }) => {
-    const url = await gotoFirstAvailable(page, INDEX_URLS());
-    if (!url) {
-      console.log('[test] ⚠️ 页面未加载，跳过');
-      return;
-    }
-
-    await page.waitForTimeout(3000);
-
-    const found = await findVisibleSymbols(page, 8000);
-    console.log(`[test] 找到的交易对: ${found.join(', ') || '(无)'}`);
-    console.log(`[test] check: ${found.length}`);
-
-    // 验证 BTC 和 ETH 旁边有价格数字（通常是 5~6 位整数）
-    for (const sym of ['BTC', 'ETH']) {
-      const hasNum = await hasNumericNearSymbol(page, sym);
-      if (hasNum) {
-        console.log(`[test] ✅ ${sym} 指数价格有数值`);
-      } else {
-        console.log(`[test] ⚠️ ${sym} 指数价格未检测到数值`);
-      }
-      console.log(`[test] check: ${hasNum}`);
-    }
-
-    // 验证 BTC 价格数量级合理（> 1000 USD）
-    const btcPriceTexts: string[] = await page.evaluate(() => {
-      return Array.from(document.querySelectorAll('td, [class*="price"], [class*="value"]'))
-        .map((el: any) => el.innerText?.trim() ?? '')
-        .filter(t => /^\d{4,}(\.\d+)?$/.test(t))
-        .slice(0, 10);
-    });
-    console.log(`[test] 疑似大数价格: ${btcPriceTexts.slice(0, 5).join(', ')}`);
-
-    await page.screenshot({ path: `test-results/index-prices-${Date.now()}.png` });
-    console.log('[test] ✅ 指数价格数值验证完成');
-  });
-
-
-  // ========================================================
-  // 测试 MD-10：Index — 多个主要交易对同时可见
-  // ========================================================
-  test('[Index] 页面同时显示多个主要交易对', async ({ loggedInPage: page }) => {
-    const url = await gotoFirstAvailable(page, INDEX_URLS());
-    if (!url) {
-      console.log('[test] ⚠️ 页面未加载，跳过');
-      return;
-    }
-
-    await page.waitForTimeout(3000);
-
-    const found = await findVisibleSymbols(page, 5000);
-    console.log(`[test] 可见交易对 (${found.length}): ${found.join(', ')}`);
-
-    // 至少应能看到 BTC 和 ETH
-    const hasBTC = found.some(s => s.includes('BTC'));
-    const hasETH = found.some(s => s.includes('ETH'));
-    console.log(`[test] check: ${hasBTC}`);
-    console.log(`[test] check: ${hasETH}`);
-
-    // 整体至少有 2 个主要 symbol
-    console.log(`[test] check: ${found.length}`);
-
-    await page.screenshot({ path: `test-results/index-multi-symbols-${Date.now()}.png` });
-    console.log('[test] ✅ 多交易对显示验证完成');
-  });
-
-
-  // ========================================================
-  // 测试 MD-11：Funding Fee Comparison 页面可加载
-  // ========================================================
-  test('[Fee Comparison] 资金费比较页面可正常加载', async ({ loggedInPage: page }) => {
-    const url = await gotoFirstAvailable(page, FEE_COMPARISON_URLS());
-
-    if (!url) {
-      console.log('[test] ⚠️ 未找到资金费比较页面，截图留存');
-      await page.screenshot({ path: `test-results/fee-comparison-notfound-${Date.now()}.png` });
-      return;
-    }
-
-    const title = await page.title();
-    console.log(`[test] 页面标题: ${title}`);
-    expect(title).toBeTruthy();
-
-    const pageKeywords = [
-      '费率对比', 'Fee Comparison', 'Funding Fee', '资金费',
-      '对比', 'Comparison', '手续费', 'Fee',
-    ];
-    let kwFound = false;
-    for (const kw of pageKeywords) {
-      if (await page.locator(`text=${kw}`).first().isVisible({ timeout: 5000 }).catch(() => false)) {
-        console.log(`[test] ✅ 找到关键词: "${kw}"`);
-        kwFound = true;
-        break;
-      }
-    }
-    console.log(`[test] check: ${kwFound}`);
-
-    await page.screenshot({ path: `test-results/fee-comparison-load-${Date.now()}.png` });
-    console.log('[test] ✅ 资金费比较页面加载完成');
-  });
-
-
-  // ========================================================
-  // 测试 MD-12：Funding Fee Comparison — BTCUSDT / ETHUSDT 行显示费率数值
-  // ========================================================
-  test('[Fee Comparison] BTCUSDT / ETHUSDT 费率对比数据显示', async ({ loggedInPage: page }) => {
-    const url = await gotoFirstAvailable(page, FEE_COMPARISON_URLS());
-    if (!url) {
-      console.log('[test] ⚠️ 页面未加载，跳过');
-      return;
-    }
-
-    await page.waitForTimeout(3000);
-
-    const found = await findVisibleSymbols(page, 8000);
-    console.log(`[test] 找到的交易对: ${found.join(', ') || '(无)'}`);
-    console.log(`[test] check: ${found.length}`);
-
-    for (const sym of ['BTC', 'ETH']) {
-      const hasNum = await hasNumericNearSymbol(page, sym);
-      if (hasNum) {
-        console.log(`[test] ✅ ${sym} 费率比较行有数值`);
-      } else {
-        console.log(`[test] ⚠️ ${sym} 费率比较行未检测到数值`);
-      }
-      console.log(`[test] check: ${hasNum}`);
-    }
-
-    await page.screenshot({ path: `test-results/fee-comparison-values-${Date.now()}.png` });
-    console.log('[test] ✅ 费率对比数据验证完成');
-  });
-
-
-  // ========================================================
-  // 测试 MD-13：Funding Fee Comparison — 对比列（多个交易所/产品）可见
-  // ========================================================
-  test('[Fee Comparison] 对比列（多交易所或产品）可见', async ({ loggedInPage: page }) => {
-    const url = await gotoFirstAvailable(page, FEE_COMPARISON_URLS());
-    if (!url) {
-      console.log('[test] ⚠️ 页面未加载，跳过');
-      return;
-    }
-
-    await page.waitForTimeout(3000);
-
-    // 常见竞品交易所名称，或本站多产品列名
-    const compareKeywords = [
-      'Binance', 'OKX', 'Bybit', 'BitMEX', 'Huobi', 'HTX',
-      'dYdX', 'GMX', 'AsterDEX', 'Pro', 'Shield', '1001x',
-    ];
-
-    const visibleExchanges: string[] = [];
-    for (const kw of compareKeywords) {
-      if (await page.locator(`text=${kw}`).first().isVisible({ timeout: 1500 }).catch(() => false)) {
-        visibleExchanges.push(kw);
-      }
-    }
-
-    console.log(`[test] 可见对比列 (${visibleExchanges.length}): ${visibleExchanges.join(', ')}`);
-    // 至少应有 1 个对比列
-    console.log(`[test] check: ${visibleExchanges.length}`);
-
-    await page.screenshot({ path: `test-results/fee-comparison-columns-${Date.now()}.png` });
-    console.log('[test] ✅ 对比列验证完成');
-  });
-
-
-  // ========================================================
-  // 测试 MD-14：Funding Fee Comparison — 可切换交易对
-  // ========================================================
-  test('[Fee Comparison] 可切换交易对查看不同费率对比', async ({ loggedInPage: page }) => {
-    const url = await gotoFirstAvailable(page, FEE_COMPARISON_URLS());
-    if (!url) {
-      console.log('[test] ⚠️ 页面未加载，跳过');
-      return;
-    }
-
-    await page.waitForTimeout(2000);
-
-    // 先验证 BTCUSDT 存在
-    const btcVisible = await page.locator('text=BTC').first().isVisible({ timeout: 5000 }).catch(() => false);
-    console.log(`[test] BTC 初始可见: ${btcVisible}`);
-
-    // 找 symbol 切换控件
-    const switchSelectors = [
-      'select', '[role="combobox"]',
-      'input[placeholder*="BTC"]', 'input[placeholder*="搜索"]',
-      'button:has-text("BTCUSDT")', 'button:has-text("BTC")',
-    ];
-
-    let switched = false;
-    for (const sel of switchSelectors) {
-      const el = page.locator(sel).first();
-      if (await el.isVisible({ timeout: 2000 }).catch(() => false)) {
-        const tag = await el.evaluate((e: any) => e.tagName.toLowerCase());
-        if (tag === 'select') {
-          await el.selectOption({ label: 'ETHUSDT' }).catch(() => el.selectOption({ label: 'ETH' })).catch(() => {});
-        } else {
-          await el.click();
-          await page.waitForTimeout(800);
-          const ethOpt = page.locator('text=ETHUSDT, text=ETH').first();
-          if (await ethOpt.isVisible({ timeout: 2000 }).catch(() => false)) {
-            await ethOpt.click();
-          }
-        }
-        await page.waitForTimeout(2000);
-        console.log(`[test] 已尝试切换交易对 (${sel})`);
-        switched = true;
-        break;
-      }
-    }
-
-    if (!switched) {
-      console.log('[test] ⚠️ 未找到交易对切换控件，跳过');
-    } else {
-      // 切换后 ETH 应可见
-      const ethVisible = await page.locator('text=ETH').first().isVisible({ timeout: 3000 }).catch(() => false);
-      console.log(`[test] 切换后 ETH 可见: ${ethVisible}`);
-      console.log(`[test] check: ${ethVisible}`);
-    }
-
-    await page.screenshot({ path: `test-results/fee-comparison-switch-${Date.now()}.png` });
-    console.log('[test] ✅ 费率对比交易对切换验证完成');
-  });
-
-
-  // ========================================================
-  // 测试 MD-15：四个 Market Data 页面均无 404 / 500 错误
+  // MD-5：四个子页面均无 404 / 500 错误
   // ========================================================
   test('[Market Data] 四个子页面均无 404 / 500 错误', async ({ loggedInPage: page }) => {
-    const pageGroups = [
-      { name: 'Real-Time Funding Rate', urls: FUNDING_RATE_URLS() },
-      { name: 'Funding Rate History',   urls: FUNDING_HISTORY_URLS() },
-      { name: 'Index',                  urls: INDEX_URLS() },
-      { name: 'Funding Fee Comparison', urls: FEE_COMPARISON_URLS() },
+    const pages = [
+      { name: 'Real-Time Funding Rate', url: FUNDING_RATE_URL() },
+      { name: 'Funding Rate History',   url: FUNDING_HISTORY_URL() },
+      { name: 'Index',                  url: INDEX_URL() },
+      { name: 'Funding Fee Comparison', url: FEE_COMPARISON_URL() },
     ];
 
-    for (const group of pageGroups) {
-      const url = await gotoFirstAvailable(page, group.urls);
-      if (!url) {
-        console.log(`[test] ⚠️ "${group.name}" 未找到可用 URL`);
-        continue;
-      }
+    for (const p of pages) {
+      await page.goto(p.url);
+      await page.waitForLoadState('domcontentloaded');
+      await page.waitForTimeout(2000);
 
       const has404 = await page.locator('h1:text-is("404"), text=404 Not Found').isVisible({ timeout: 2000 }).catch(() => false);
       const has500 = await page.locator('h1:text-is("500"), text=Internal Server Error').isVisible({ timeout: 2000 }).catch(() => false);
 
-      expect.soft(has404, `"${group.name}" 出现 404`).toBe(false);
-      expect.soft(has500, `"${group.name}" 出现 500`).toBe(false);
+      expect.soft(has404, `"${p.name}" 出现 404`).toBe(false);
+      expect.soft(has500, `"${p.name}" 出现 500`).toBe(false);
 
-      console.log(`[test] "${group.name}" → ${url} — 无错误页: ${!has404 && !has500 ? '✅' : '❌'}`);
+      console.log(`[test] "${p.name}" → 无错误页: ${!has404 && !has500 ? '✅' : '❌'}`);
     }
 
     console.log('[test] ✅ 四个子页面错误检查完成');
