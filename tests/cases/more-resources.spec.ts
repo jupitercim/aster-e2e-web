@@ -1,3 +1,4 @@
+// spec: specs/more-resources.plan.md
 import { test, expect } from '../fixtures/auth';
 
 function getBaseUrl(): string {

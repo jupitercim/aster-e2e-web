@@ -1,3 +1,4 @@
+// spec: specs/trading-leaderboard.plan.md
 import { test, expect } from '../fixtures/auth';
 
 function getLeaderboardUrl(): string {

@@ -1,3 +1,4 @@
+// spec: specs/aster-code.plan.md
 import { test, expect } from '../fixtures/auth';
 
 function getAsterCodeUrl(): string {

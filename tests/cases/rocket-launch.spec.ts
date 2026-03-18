@@ -1,3 +1,4 @@
+// spec: specs/rocket-launch.plan.md
 import { test, expect } from '../fixtures/auth';
 
 function getRocketLaunchUrl(): string {

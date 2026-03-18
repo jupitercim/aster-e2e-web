@@ -1,3 +1,4 @@
+// spec: specs/earn.plan.md
 import { test, expect } from '../fixtures/auth';
 
 function getEarnUrl(): string {

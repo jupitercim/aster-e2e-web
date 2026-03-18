@@ -1,3 +1,4 @@
+// spec: specs/h5-auto.plan.md
 import { test, expect } from '../fixtures/auth';
 
 function getBaseUrl(): string {

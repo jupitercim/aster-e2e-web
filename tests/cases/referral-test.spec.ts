@@ -1,3 +1,4 @@
+// spec: specs/referral-test.plan.md
 import { test, expect } from '../fixtures/auth';
 
 function getReferralCodeUrl(): string {

@@ -1,3 +1,4 @@
+// spec: specs/grid-trading.plan.md
 import { test, expect } from '../fixtures/auth';
 
 function getGridTradingUrl(): string {

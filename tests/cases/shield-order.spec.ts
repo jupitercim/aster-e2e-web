@@ -1,3 +1,4 @@
+// spec: specs/shield-order.plan.md
 import { test, expect } from '../fixtures/auth';
 
 // Shield 模式交易页 URL（TODO: 确认实际路径）

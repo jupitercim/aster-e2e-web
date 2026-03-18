@@ -1,3 +1,4 @@
+// spec: specs/api-management.plan.md
 import { test, expect } from '../fixtures/auth';
 
 function getApiManagementUrl(): string {

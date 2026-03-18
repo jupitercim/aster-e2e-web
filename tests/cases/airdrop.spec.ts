@@ -1,3 +1,4 @@
+// spec: specs/airdrop.plan.md
 import { test, expect } from '../fixtures/auth';
 
 function getAirdropUrl(): string {

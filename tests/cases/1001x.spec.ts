@@ -1,3 +1,4 @@
+// spec: specs/1001x.plan.md
 import { test, expect } from '../fixtures/auth';
 
 function get1001xUrl(): string {

@@ -1,3 +1,4 @@
+// spec: specs/health-check.plan.md
 import { test, expect } from '../fixtures/auth';
 
 // 从 EXCHANGE_URL 推导出站点根域

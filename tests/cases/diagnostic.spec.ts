@@ -1,3 +1,4 @@
+// spec: specs/diagnostic.plan.md
 import { test } from '../fixtures/auth';
 
 test('DOM diagnostic - bottom panel', async ({ loggedInPage: page }) => {

@@ -1,3 +1,4 @@
+// spec: specs/open-order.plan.md
 import { test, expect } from '../fixtures/auth';
 
 const LIMIT_PRICE = 66000;

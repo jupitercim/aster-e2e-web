@@ -1,3 +1,4 @@
+// spec: specs/futures-order.plan.md
 import { test, expect } from '../fixtures/auth';
 
 test.describe.serial('AsterDEX - 期货合约交易', () => {

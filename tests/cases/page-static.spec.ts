@@ -1,3 +1,4 @@
+// spec: specs/page-static.plan.md
 import { test, expect } from '@playwright/test';
 import { PageDiscovery, PageNode } from '../helpers/PageDiscovery';
 import { VisualChecker, VisualCheckReport } from '../helpers/VisualChecker';

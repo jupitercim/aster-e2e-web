@@ -1,3 +1,4 @@
+// spec: specs/future-other-order.plan.md
 import { test, expect } from '../fixtures/auth';
 
 test.describe.serial('AsterDEX - 期货其他委托（止盈止损 / 计划委托）', () => {

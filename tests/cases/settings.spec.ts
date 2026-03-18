@@ -1,3 +1,4 @@
+// spec: specs/settings.plan.md
 import { test, expect } from '../fixtures/auth';
 
 function getSettingsUrl(): string {
