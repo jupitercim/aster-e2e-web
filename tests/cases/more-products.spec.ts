@@ -6,99 +6,202 @@ function getBaseUrl(): string {
   return `${origin}/zh-CN`;
 }
 
-test.describe.serial('AsterDEX - More Products 页面', () => {
+// 打开顶部"更多"下拉（hover），返回是否成功
+async function openMoreDropdown(page: any): Promise<boolean> {
+  // 顶部导航中"更多/More"按钮，悬停后展开下拉
+  const candidates = ['更多', 'More'];
+  for (const kw of candidates) {
+    const el = page.locator(`text="${kw}"`).first();
+    if (await el.isVisible({ timeout: 3000 }).catch(() => false)) {
+      await el.hover();
+      await page.waitForTimeout(800);
+      console.log(`[test] ✅ hover 顶部导航: "${kw}"`);
+      return true;
+    }
+  }
+  console.log('[test] ⚠️ 未找到顶部"更多/More"按钮');
+  return false;
+}
+
+test.describe.serial('AsterDEX - More Products（资源）页面', () => {
 
   // ========================================================
-  // 测试 1：导航到 More Products 入口
+  // 测试 1：顶部"更多"下拉框可打开，右侧"资源"区域可见
   // ========================================================
-  test('More Products 导航入口可点击', async ({ loggedInPage: page }) => {
+  test('顶部"更多"按钮下拉框可打开，资源区域可见', async ({ loggedInPage: page }) => {
     await page.goto(getBaseUrl());
     await page.waitForLoadState('domcontentloaded');
     await page.waitForTimeout(3000);
 
-    // 查找顶部导航中的 More Products 入口
-    const navKeywords = ['More Products', '更多产品', 'Products'];
-    let navFound = false;
+    const opened = await openMoreDropdown(page);
 
-    for (const kw of navKeywords) {
-      const navItem = page.locator(`text=${kw}`).first();
-      if (await navItem.isVisible({ timeout: 3000 }).catch(() => false)) {
-        await navItem.click();
-        console.log(`[test] 点击了导航: "${kw}"`);
-        await page.waitForTimeout(2000);
-        navFound = true;
-        break;
-      }
+    if (!opened) {
+      await page.screenshot({ path: `test-results/more-products-btn-${Date.now()}.png` });
+      console.log('[test] ⚠️ 无法打开下拉框，跳过');
+      return;
     }
 
-    if (!navFound) {
-      console.log('[test] ⚠️ 未找到 More Products 导航，尝试直接访问');
-      await page.screenshot({ path: `test-results/more-products-nav-${Date.now()}.png` });
-    }
+    // 验证右侧"资源"标签可见
+    const resourceLabel = page.locator('text=资源').first();
+    const hasResourceLabel = await resourceLabel.isVisible({ timeout: 3000 }).catch(() => false);
+    console.log(`[test] "资源"标签: ${hasResourceLabel ? '✅' : '⚠️'}`);
+    expect(hasResourceLabel).toBe(true);
 
-    await page.screenshot({ path: `test-results/more-products-load-${Date.now()}.png` });
-    console.log('[test] ✅ More Products 导航测试完成');
+    await page.screenshot({ path: `test-results/more-products-dropdown-${Date.now()}.png` });
+    console.log('[test] ✅ 下拉框打开验证完成');
   });
 
 
   // ========================================================
-  // 测试 2：验证产品列表显示
+  // 测试 2：验证"资源"区域下所有链接均可见
   // ========================================================
-  test('验证产品列表页面内容', async ({ loggedInPage: page }) => {
-    // 复用 test 1 已打开的页面，无需重新导航
-
-    const productKeywords = ['现货', 'Spot', '合约', 'Futures', 'Earn', '赚币', 'Launchpad'];
-    let found = false;
-
-    for (const kw of productKeywords) {
-      const el = page.locator(`text=${kw}`).first();
-      if (await el.isVisible({ timeout: 3000 }).catch(() => false)) {
-        console.log(`[test] ✅ 找到产品元素: "${kw}"`);
-        found = true;
-        break;
-      }
+  test('资源区域下所有产品链接可见', async ({ loggedInPage: page }) => {
+    const opened = await openMoreDropdown(page);
+    if (!opened) {
+      console.log('[test] ⚠️ 未找到"更多"按钮，跳过');
+      return;
     }
 
-    if (!found) {
-      console.log('[test] ⚠️ 未找到产品列表内容，请确认 URL 和页面结构');
-      await page.screenshot({ path: `test-results/more-products-content-${Date.now()}.png` });
+    // 找到"资源"标签，然后取其后的所有 <a> 链接
+    const resourceLabel = page.locator('text=资源').first();
+    const hasLabel = await resourceLabel.isVisible({ timeout: 3000 }).catch(() => false);
+
+    if (!hasLabel) {
+      console.log('[test] ⚠️ 未找到"资源"标签，跳过');
+      await page.screenshot({ path: `test-results/more-products-no-label-${Date.now()}.png` });
+      return;
     }
 
-    // 验证没有加载错误
-    const hasError = await page.locator('text=404').isVisible({ timeout: 1000 }).catch(() => false);
-    expect(hasError).toBe(false);
-    console.log('[test] ✅ More Products 内容验证完成');
+    // 提取"资源"区域附近所有可见链接文本
+    const links = await page.evaluate(() => {
+      const labels = Array.from(document.querySelectorAll('*')).filter(
+        (el: any) => el.innerText?.trim() === '资源'
+      );
+      if (!labels.length) return [];
+      // 找到资源标签的父容器
+      const container = labels[0].closest('[class*="dropdown"], [class*="menu"], [class*="panel"], section, div');
+      if (!container) return [];
+      return Array.from(container.querySelectorAll('a'))
+        .map((a: any) => ({ text: a.innerText?.trim(), href: a.href }))
+        .filter(item => item.text);
+    });
+
+    console.log(`[test] 找到资源链接数: ${links.length}`);
+    for (const link of links) {
+      console.log(`[test]   - "${link.text}" → ${link.href}`);
+    }
+
+    expect(links.length).toBeGreaterThan(0);
+    await page.screenshot({ path: `test-results/more-products-links-${Date.now()}.png` });
+    console.log('[test] ✅ 资源链接列表验证完成');
   });
 
 
   // ========================================================
-  // 测试 3：点击进入具体产品页
+  // 测试 3：所有链接的 href 有效（非空、非 # ）
   // ========================================================
-  test('点击进入具体产品页面', async ({ loggedInPage: page }) => {
-    // 复用 test 2 已打开的页面，无需重新导航
-
-    // 尝试点击现货或期货入口
-    const productLinks = ['现货交易', 'Spot Trading', '合约交易', 'Futures Trading'];
-    let clicked = false;
-
-    for (const linkText of productLinks) {
-      const link = page.locator(`a:has-text("${linkText}"), button:has-text("${linkText}")`).first();
-      if (await link.isVisible({ timeout: 2000 }).catch(() => false)) {
-        await link.click();
-        await page.waitForLoadState('domcontentloaded');
-        await page.waitForTimeout(2000);
-        console.log(`[test] 点击了产品链接: "${linkText}"`);
-        clicked = true;
-        break;
-      }
+  test('资源区域所有链接 href 有效', async ({ loggedInPage: page }) => {
+    const opened = await openMoreDropdown(page);
+    if (!opened) {
+      console.log('[test] ⚠️ 未找到"更多"按钮，跳过');
+      return;
     }
 
-    if (!clicked) {
-      console.log('[test] ⚠️ 未找到具体产品链接，跳过');
+    const hasLabel = await page.locator('text=资源').first().isVisible({ timeout: 3000 }).catch(() => false);
+    if (!hasLabel) {
+      console.log('[test] ⚠️ 未找到"资源"标签，跳过');
+      return;
+    }
+
+    const links = await page.evaluate(() => {
+      const labels = Array.from(document.querySelectorAll('*')).filter(
+        (el: any) => el.innerText?.trim() === '资源'
+      );
+      if (!labels.length) return [];
+      const container = labels[0].closest('[class*="dropdown"], [class*="menu"], [class*="panel"], section, div');
+      if (!container) return [];
+      return Array.from(container.querySelectorAll('a'))
+        .map((a: any) => ({ text: a.innerText?.trim(), href: a.href }))
+        .filter(item => item.text);
+    });
+
+    let invalidCount = 0;
+    for (const link of links) {
+      const valid = link.href && link.href !== '#' && !link.href.endsWith('#');
+      console.log(`[test] "${link.text}" href ${valid ? '✅' : '❌'}: ${link.href}`);
+      if (!valid) invalidCount++;
+    }
+
+    expect.soft(invalidCount).toBe(0);
+    console.log('[test] ✅ 链接 href 验证完成');
+  });
+
+
+  // ========================================================
+  // 测试 4：点击"资源"区域中第一个链接，页面正常跳转
+  // ========================================================
+  test('点击资源链接后页面正常跳转，无 404/500', async ({ loggedInPage: page }) => {
+    const opened = await openMoreDropdown(page);
+    if (!opened) {
+      console.log('[test] ⚠️ 未找到"更多"按钮，跳过');
+      return;
+    }
+
+    const hasLabel = await page.locator('text=资源').first().isVisible({ timeout: 3000 }).catch(() => false);
+    if (!hasLabel) {
+      console.log('[test] ⚠️ 未找到"资源"标签，跳过');
+      return;
+    }
+
+    // 取第一个链接并点击
+    const links = await page.evaluate(() => {
+      const labels = Array.from(document.querySelectorAll('*')).filter(
+        (el: any) => el.innerText?.trim() === '资源'
+      );
+      if (!labels.length) return [];
+      const container = labels[0].closest('[class*="dropdown"], [class*="menu"], [class*="panel"], section, div');
+      if (!container) return [];
+      return Array.from(container.querySelectorAll('a'))
+        .map((a: any) => ({ text: a.innerText?.trim(), href: a.href }))
+        .filter(item => item.text && item.href && item.href !== '#');
+    });
+
+    if (!links.length) {
+      console.log('[test] ⚠️ 未找到可点击链接，跳过');
+      return;
+    }
+
+    const firstLink = links[0];
+    console.log(`[test] 点击链接: "${firstLink.text}" → ${firstLink.href}`);
+
+    // 新标签页处理
+    const [newPage] = await Promise.all([
+      page.context().waitForEvent('page').catch(() => null),
+      page.locator(`a:has-text("${firstLink.text}")`).first().click(),
+    ]);
+
+    if (newPage) {
+      await newPage.waitForLoadState('domcontentloaded');
+      await newPage.waitForTimeout(2000);
+      const has404 = await newPage.locator('h1:text-is("404"), text=404 Not Found').isVisible({ timeout: 2000 }).catch(() => false);
+      const has500 = await newPage.locator('h1:text-is("500"), text=Internal Server Error').isVisible({ timeout: 2000 }).catch(() => false);
+      console.log(`[test] 新标签页 URL: ${newPage.url()}`);
+      console.log(`[test] 无错误页: ${!has404 && !has500 ? '✅' : '❌'}`);
+      expect.soft(has404).toBe(false);
+      expect.soft(has500).toBe(false);
+      await newPage.screenshot({ path: `test-results/more-products-click-${Date.now()}.png` });
+      await newPage.close();
     } else {
-      const currentUrl = page.url();
-      console.log(`[test] ✅ 已跳转到: ${currentUrl}`);
+      await page.waitForLoadState('domcontentloaded');
+      await page.waitForTimeout(2000);
+      const has404 = await page.locator('h1:text-is("404"), text=404 Not Found').isVisible({ timeout: 2000 }).catch(() => false);
+      console.log(`[test] 跳转后 URL: ${page.url()}`);
+      console.log(`[test] 无 404: ${!has404 ? '✅' : '❌'}`);
+      expect.soft(has404).toBe(false);
+      await page.screenshot({ path: `test-results/more-products-click-${Date.now()}.png` });
     }
+
+    console.log('[test] ✅ 链接点击跳转验证完成');
   });
 
 });
