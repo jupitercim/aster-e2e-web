@@ -14,33 +14,38 @@ function getGridUrl(): string {
   return `${origin}/zh-CN/strategy/futures/grid/BTCUSDT`;
 }
 
-// 用 JS 直接点击，绕过 step guide 覆盖层
-async function jsClick(page: any, selector: string): Promise<boolean> {
-  return page.evaluate((sel: string) => {
-    const el = document.querySelector(sel) as HTMLElement;
-    if (el) { el.click(); return true; }
-    return false;
-  }, selector);
-}
-
-// 用原生 setter 触发 React 受控 input 的 onChange
-// 关闭 step guide（点完所有"下一步"）
+// 关闭 step guide / 欢迎弹窗
 async function dismissGridGuide(page: any) {
-  await page.keyboard.press('Escape');
-  await page.waitForTimeout(800);
-  for (let i = 0; i < 15; i++) {
-    const btn = page.locator('button:has-text("下一步")').first();
-    if (await btn.isVisible({ timeout: 1200 }).catch(() => false)) {
-      await btn.click({ force: true });
+  // 先尝试直接点「跳过」/「关闭」/「×」
+  for (const sel of [
+    'button:has-text("跳过")',
+    'button:has-text("Skip")',
+    '[aria-label="close"]',
+    'button:has-text("×")',
+    'button:has-text("关闭")',
+  ]) {
+    const el = page.locator(sel).first();
+    if (await el.isVisible({ timeout: 600 }).catch(() => false)) {
+      await el.click({ force: true });
       await page.waitForTimeout(500);
-      console.log(`[guide] 点击下一步 #${i + 1}`);
+      console.log(`[guide] 点击关闭: ${sel}`);
+    }
+  }
+  // 再逐步点完所有「下一步」→「完成」
+  for (let i = 0; i < 15; i++) {
+    const next = page.locator('button:has-text("下一步")').first();
+    if (await next.isVisible({ timeout: 800 }).catch(() => false)) {
+      await next.click({ force: true });
+      await page.waitForTimeout(400);
+      console.log(`[guide] 下一步 #${i + 1}`);
     } else break;
   }
-  for (const sel of ['button:has-text("完成")', 'button:has-text("知道了")', 'button:has-text("我知道了")']) {
+  for (const sel of ['button:has-text("完成")', 'button:has-text("知道了")', 'button:has-text("我知道了")', 'button:has-text("开始使用")']) {
     const el = page.locator(sel).first();
-    if (await el.isVisible({ timeout: 800 }).catch(() => false)) {
+    if (await el.isVisible({ timeout: 600 }).catch(() => false)) {
       await el.click({ force: true });
       await page.waitForTimeout(400);
+      console.log(`[guide] 点击完成: ${sel}`);
       break;
     }
   }
@@ -213,137 +218,119 @@ test.describe.serial('AsterDEX - Shield 模式交易', () => {
 
 
   // ========================================================
-  // 测试 4：网格交易 - 手动创建做多网格策略
+  // 测试 4：网格交易 - 手动创建做多策略
   // ========================================================
   test('网格交易 - 手动创建做多策略（价格区间 mark-2000 ~ mark-1000，5格）', async ({ loggedInPage: page }) => {
     await page.goto(getGridUrl());
     await page.waitForLoadState('domcontentloaded');
-    await page.waitForTimeout(4000);
+    await page.waitForTimeout(5000);
 
-    // 关闭 step guide
+    // 关闭欢迎/step guide 弹窗
     await dismissGridGuide(page);
 
-    // 读取标记价格（叶节点文本，只取 50,000-200,000 之间的合理 BTC 价格）
+    // 读取标记价格（取页面上 50,000~500,000 之间的数值，BTC 合理范围）
     const markPrice = await page.evaluate(() => {
-      const texts = Array.from(document.querySelectorAll('*'))
+      const nums = Array.from(document.querySelectorAll('*'))
         .filter(e => e.children.length === 0)
-        .map(e => (e as HTMLElement).innerText?.trim())
-        .filter(t => t && /^[\d,]+\.\d{1,2}$/.test(t))
+        .map(e => (e as HTMLElement).innerText?.trim() ?? '')
+        .filter(t => /^[\d,]+\.\d{1,2}$/.test(t))
         .map(t => parseFloat(t.replace(/,/g, '')))
-        .filter(n => n > 50000 && n < 200000);
-      return texts[0] || 0;
+        .filter(n => n > 50000 && n < 500000);
+      return nums[0] ?? 0;
     });
     console.log(`[test] 标记价格: ${markPrice}`);
     expect(markPrice).toBeGreaterThan(0);
 
     const lowerPrice = Math.round(markPrice - 2000);
     const upperPrice = Math.round(markPrice - 1000);
-    console.log(`[test] 价格区间: ${lowerPrice} ~ ${upperPrice}`);
+    console.log(`[test] 目标价格区间: ${lowerPrice} ~ ${upperPrice}`);
 
-    // JS 点击「手动创建」
-    const clickedManual = await jsClick(page, '[data-testid="manual"]');
-    console.log(`[test] 手动创建: ${clickedManual ? '✅' : '⚠️'}`);
+    // ── 点击「手动创建」tab ──
+    await page.evaluate(() => {
+      const byTestId = document.querySelector('[data-testid="manual"]') as HTMLElement;
+      if (byTestId) { byTestId.click(); return; }
+      const byText = Array.from(document.querySelectorAll('button,[role="tab"]'))
+        .find(el => el.textContent?.trim() === '手动创建') as HTMLElement;
+      byText?.click();
+    });
+    await page.waitForTimeout(800);
+    console.log('[test] ✅ 手动创建');
+
+    // ── 点击「做多」方向 ──
+    await page.evaluate(() => {
+      const byTestId = document.querySelector('[data-testid="LONG"]') as HTMLElement;
+      if (byTestId) { byTestId.click(); return; }
+      const byText = Array.from(document.querySelectorAll('button,[role="tab"],[role="radio"]'))
+        .find(el => /^(做多|Long|LONG)$/.test(el.textContent?.trim() ?? '')) as HTMLElement;
+      byText?.click();
+    });
     await page.waitForTimeout(600);
+    console.log('[test] ✅ 做多');
 
-    // JS 点击「做多」
-    const clickedLong = await jsClick(page, '[data-testid="LONG"]');
-    console.log(`[test] 做多: ${clickedLong ? '✅' : '⚠️'}`);
-    await page.waitForTimeout(600);
-
-    // 填写最低价格
-    const lowerInput = page.locator('input[placeholder="最低价格"]').first();
-    await expect(lowerInput).toBeVisible({ timeout: 5000 });
-    await lowerInput.click();
+    // ── 填写最低价格 ──
+    const lowerInput = page.locator('#gridLowerLimit').first();
+    await lowerInput.waitFor({ state: 'visible', timeout: 6000 });
     await lowerInput.fill(String(lowerPrice));
-    await page.waitForTimeout(300);
+    await page.waitForTimeout(600);
     console.log(`[test] 最低价格: ${lowerPrice}`);
 
-    // 填写最高价格
-    const upperInput = page.locator('input[placeholder="最高价格"]').first();
-    await expect(upperInput).toBeVisible({ timeout: 3000 });
-    await upperInput.click();
+    // ── 填写最高价格 ──
+    const upperInput = page.locator('#gridUpperLimit').first();
+    await upperInput.waitFor({ state: 'visible', timeout: 3000 });
     await upperInput.fill(String(upperPrice));
-    await page.waitForTimeout(300);
+    await page.waitForTimeout(600);
     console.log(`[test] 最高价格: ${upperPrice}`);
 
-    // 填写网格数量 5
-    const gridCountInput = page.locator('input[placeholder="2-149"]').first();
-    await expect(gridCountInput).toBeVisible({ timeout: 3000 });
-    await gridCountInput.click();
-    await gridCountInput.fill('5');
-    await page.waitForTimeout(300);
+    // ── 填写网格数量 5 ──
+    const gridInput = page.locator('#gridCount').first();
+    await gridInput.waitFor({ state: 'visible', timeout: 3000 });
+    await gridInput.fill('5');
+    await gridInput.press('Tab');
+    await page.waitForTimeout(1500);
     console.log('[test] 网格数量: 5');
 
-    // 点击空白处触发系统计算保证金最小值
-    await gridCountInput.press('Tab');
-    await page.waitForTimeout(800);
+    // ── 填写保证金（填完价格和格数后 #gridInitialValue 变为可见）──
+    const marginInput = page.locator('#gridInitialValue').last(); // 取最后一个（visible 的那个）
+    await marginInput.waitFor({ state: 'visible', timeout: 6000 });
+    const ph = await marginInput.getAttribute('placeholder') ?? '';
+    const minVal = parseFloat(ph.replace('≥', '').replace(/,/g, '')) || 1;
+    const fillVal = Math.max(Math.ceil(minVal) * 10, 100);
+    await marginInput.fill(String(fillVal));
+    await marginInput.press('Tab');
+    await page.waitForTimeout(600);
+    console.log(`[test] 保证金: ${fillVal} (min ${ph})`);
 
-    // 找可见的初始保证金 input（placeholder 以 ≥ 开头，有实际尺寸）
-    let marginInput = null;
-    const marginCandidates = page.locator('input[placeholder^="≥"]');
-    const marginCount = await marginCandidates.count();
-    for (let i = 0; i < marginCount; i++) {
-      const inp = marginCandidates.nth(i);
-      if (await inp.isVisible({ timeout: 500 }).catch(() => false)) {
-        marginInput = inp;
-        break;
-      }
-    }
-
-    if (marginInput) {
-      const ph = await marginInput.getAttribute('placeholder') || '';
-      const minVal = parseFloat(ph.replace('≥', '').replace(/,/g, '')) || 10;
-      const fillVal = Math.max(Math.ceil(minVal) * 10, 100);
-      await marginInput.click();
-      await marginInput.fill(String(fillVal));
-      await page.waitForTimeout(400);
-      console.log(`[test] 保证金: ${fillVal} (min ${ph})`);
-    } else {
-      console.log('[test] ⚠️ 未找到可见保证金 input');
-    }
-
-    // 等待「创建」按钮变为可点击（最多 3s）
-    const createBtnLocator = page.locator('button:has-text("创建")').first();
+    // ── 等待「创建」按钮变为可点击（最多 5s）──
+    // 两个 创建 button：第一个 vis:false(0x0)，第二个 vis:true(256x40)
+    const createBtn = page.locator('button:has-text("创建")').last();
     let createEnabled = false;
-    for (let i = 0; i < 6; i++) {
-      createEnabled = await createBtnLocator.isEnabled().catch(() => false);
+    for (let i = 0; i < 10; i++) {
+      createEnabled = await createBtn.isEnabled().catch(() => false);
       if (createEnabled) break;
       await page.waitForTimeout(500);
     }
-    console.log(`[test] 创建按钮: ${createEnabled ? '✅ 可点击' : '⚠️ 仍 disabled，尝试 JS 提交'}`);
+    console.log(`[test] 创建按钮: ${createEnabled ? '✅ 可点击' : '⚠️ 仍 disabled'}`);
 
     await page.screenshot({ path: `test-results/grid-form-filled-${Date.now()}.png` });
 
-    if (createEnabled) {
-      await createBtnLocator.click();
-    } else {
-      // 直接 JS 点击（绕过 disabled 检查）
-      await page.evaluate(() => {
-        const btn = Array.from(document.querySelectorAll('button')).find(b => b.textContent?.trim() === '创建') as HTMLElement;
-        btn?.click();
-      });
-    }
+    await createBtn.click({ force: true });
     await page.waitForTimeout(1000);
 
-    // 处理可能的确认弹窗
+    // 处理可能出现的确认弹窗
     const confirmBtn = page.locator('button:has-text("确认"), button:has-text("Confirm")').last();
-    if (await confirmBtn.isVisible({ timeout: 2000 }).catch(() => false)) {
+    if (await confirmBtn.isVisible({ timeout: 2500 }).catch(() => false)) {
       await confirmBtn.click();
-      console.log('[test] 确认创建弹窗');
-      await page.waitForTimeout(1000);
+      console.log('[test] ✅ 确认创建弹窗');
+      await page.waitForTimeout(1500);
     }
 
     await page.screenshot({ path: `test-results/grid-created-${Date.now()}.png` });
 
-    // 验证成功提示或策略出现在列表
-    const successToast = page.locator('text=成功, text=创建成功, text=策略已创建').first();
-    const toastVisible = await successToast.waitFor({ state: 'visible', timeout: 5000 }).then(() => true).catch(() => false);
-    if (toastVisible) {
-      console.log('[test] ✅ 网格策略创建成功 Toast');
-    } else {
-      console.log('[test] ⚠️ 未检测到成功 Toast，继续验证列表');
-    }
-
+    // 检查成功 Toast
+    const toastVisible = await page.locator(
+      'text=成功, text=创建成功, text=策略已创建, text=Strategy created'
+    ).first().waitFor({ state: 'visible', timeout: 6000 }).then(() => true).catch(() => false);
+    console.log(`[test] ${toastVisible ? '✅ 策略创建成功 Toast' : '⚠️ 未检测到成功 Toast，继续验证'}`);
     console.log('[test] ✅ 网格交易创建步骤完成');
   });
 
