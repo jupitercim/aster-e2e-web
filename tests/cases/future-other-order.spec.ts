@@ -1,266 +1,310 @@
 import { test, expect } from '../fixtures/auth';
 
-test.describe.serial('AsterDEX - 期货其他委托（止盈止损 / 计划委托）', () => {
+// ===== 测试用例矩阵 =====
+const TEST_CASES = [
+  { id: 'test1',  assetMode: '单币保证金模式', positionMode: '单向持仓模式', marginMode: '逐仓', direction: 'long'  as const },
+  { id: 'test2',  assetMode: '单币保证金模式', positionMode: '单向持仓模式', marginMode: '逐仓', direction: 'short' as const },
+  { id: 'test3',  assetMode: '单币保证金模式', positionMode: '单向持仓模式', marginMode: '全仓', direction: 'long'  as const },
+  { id: 'test4',  assetMode: '单币保证金模式', positionMode: '单向持仓模式', marginMode: '全仓', direction: 'short' as const },
+  { id: 'test5',  assetMode: '单币保证金模式', positionMode: '双向持仓模式', marginMode: '逐仓', direction: 'long'  as const },
+  { id: 'test6',  assetMode: '单币保证金模式', positionMode: '双向持仓模式', marginMode: '逐仓', direction: 'short' as const },
+  { id: 'test7',  assetMode: '单币保证金模式', positionMode: '双向持仓模式', marginMode: '全仓', direction: 'long'  as const },
+  { id: 'test8',  assetMode: '单币保证金模式', positionMode: '双向持仓模式', marginMode: '全仓', direction: 'short' as const },
+  { id: 'test9',  assetMode: '联合保证金模式', positionMode: '单向持仓模式', marginMode: '全仓', direction: 'long'  as const },
+  { id: 'test10', assetMode: '联合保证金模式', positionMode: '单向持仓模式', marginMode: '全仓', direction: 'short' as const },
+  { id: 'test11', assetMode: '联合保证金模式', positionMode: '双向持仓模式', marginMode: '全仓', direction: 'long'  as const },
+  { id: 'test12', assetMode: '联合保证金模式', positionMode: '双向持仓模式', marginMode: '全仓', direction: 'short' as const },
+];
 
-  let markPrice: number = 0;
+test.describe.serial('AsterDEX - 期货市价委托', () => {
+
+  // ===== 辅助：Toast 监听（MutationObserver 方案，捕获消失极快的 Toast）=====
+  async function startToastListener(page: any) {
+    await page.evaluate(() => {
+      // 已有 observer 则不重复注册，只清空缓冲
+      if ((window as any).__toastObserver) {
+        (window as any).__toastCaptures = [];
+        return;
+      }
+      (window as any).__toastCaptures = [];
+      const observer = new MutationObserver((mutations) => {
+        for (const mutation of mutations) {
+          mutation.addedNodes.forEach((node) => {
+            if (node.nodeType !== 1) return;
+            const el = node as HTMLElement;
+            // Toast 单条是 LI 元素，class 含 group + bg-t-inverse
+            if (el.tagName === 'LI' && el.className.includes('group')) {
+              const text = el.innerText?.trim();
+              if (text) (window as any).__toastCaptures.push(text);
+            }
+            // 也扫子节点
+            el.querySelectorAll('li.group').forEach((li) => {
+              const text = (li as HTMLElement).innerText?.trim();
+              if (text) (window as any).__toastCaptures.push(text);
+            });
+          });
+        }
+      });
+      observer.observe(document.body, { childList: true, subtree: true });
+      (window as any).__toastObserver = observer;
+    });
+  }
+
+  async function readToasts(page: any, label: string): Promise<string[]> {
+    const toasts: string[] = await page.evaluate(() => {
+      const captures = (window as any).__toastCaptures ?? [];
+      (window as any).__toastCaptures = []; // 清空，准备下次捕获
+      return captures;
+    });
+    if (toasts.length > 0) {
+      toasts.forEach(t => console.log(`[toast] ${label}: ${t}`));
+    } else {
+      console.log(`[toast] ${label}: 未捕获到 Toast`);
+    }
+    return toasts;
+  }
+
+  // ===== 辅助：统计当前仓位数 =====
+  async function getPositionRowCount(page: any): Promise<number> {
+    const tabText = await page.locator('button[role="tab"]:has-text("仓位")').textContent().catch(() => '');
+    const fromTab = parseInt((tabText ?? '').match(/\((\d+)\)/)?.[1] ?? '-1');
+    if (fromTab >= 0) return fromTab;
+    return await page.locator('tbody tr:has-text("BTCUSDT"), [role="row"]:has-text("BTCUSDT")').count();
+  }
 
   // ===== 辅助：处理下单确认弹窗 =====
   async function handleConfirmDialog(page: any) {
     await page.waitForTimeout(500);
-
     const dialog = page.locator('text=订单确认').locator('..');
     if (await dialog.isVisible({ timeout: 1500 }).catch(() => false)) {
-      const dialogBtns = dialog.locator('..').locator('button');
-      const count = await dialogBtns.count();
-      if (count > 0) {
-        await dialogBtns.last().click();
-        console.log('[test] 点击了确认弹窗按钮（订单确认）');
+      const btns = dialog.locator('..').locator('button');
+      if (await btns.count() > 0) {
+        await btns.last().click();
+        console.log('[order] 点击了订单确认按钮');
         return;
       }
     }
+    const fallback = page.getByRole('button', { name: /买入\/做多|卖出\/做空|确认|Confirm/i }).last();
+    if (await fallback.isVisible({ timeout: 1500 }).catch(() => false)) {
+      await fallback.click();
+      console.log('[order] fallback 点击了确认按钮');
+    }
+  }
 
-    const cancelBtn = page.locator('button:text("取消")');
-    if (await cancelBtn.isVisible({ timeout: 1500 }).catch(() => false)) {
-      const confirmBtn = cancelBtn.locator('..').locator('button').last();
-      await confirmBtn.click();
-      console.log('[test] 点击了确认弹窗按钮（取消旁边）');
+  // ===== 辅助：查看当前模式（日志，不修改）=====
+  async function logCurrentSettings(page: any) {
+    console.log('\n[check] ===== 当前账户设置 =====');
+    const isCross    = await page.locator('button:has-text("全仓")').first().isVisible({ timeout: 2000 }).catch(() => false);
+    const isIsolated = await page.locator('button:has-text("逐仓")').first().isVisible({ timeout: 2000 }).catch(() => false);
+    console.log(`[check] 保证金模式: ${isCross ? '全仓' : isIsolated ? '逐仓' : '未知'}`);
+
+    const settingsBtn = page.locator('button:has-text("Open Settings")');
+    if (!(await settingsBtn.isVisible({ timeout: 2000 }).catch(() => false))) {
+      console.log('[check] ⚠️ 未找到 Settings 按钮');
+      console.log('[check] =========================\n');
       return;
     }
+    await settingsBtn.click();
+    await page.waitForTimeout(800);
 
-    const fallbackBtn = page.getByRole('button', { name: /确认|开多|开空|Confirm/i }).last();
-    if (await fallbackBtn.isVisible({ timeout: 1500 }).catch(() => false)) {
-      await fallbackBtn.click();
-      console.log('[test] fallback 点击了确认按钮');
+    let assetMode = '未知';
+    for (const opt of ['联合保证金模式', '单币保证金模式']) {
+      if (await page.getByRole('button', { name: opt }).isVisible({ timeout: 1000 }).catch(() => false)) {
+        assetMode = opt; break;
+      }
     }
+    console.log(`[check] 资产模式: ${assetMode}`);
+
+    const posSpan = page.locator('span.mr-1').filter({ hasText: /单向持仓模式|双向持仓模式/ }).first();
+    const posMode = (await posSpan.textContent().catch(() => '')).trim() || '未知';
+    console.log(`[check] 持仓模式: ${posMode}`);
+
+    await page.keyboard.press('Escape');
+    await page.waitForTimeout(500);
+    console.log('[check] =========================\n');
   }
 
-  // ===== 辅助：检测 Toast 提示 =====
-  async function checkToast(page: any, keywords: string[], label: string): Promise<boolean> {
-    const selector = keywords.map(kw => `text=${kw}`).join(', ');
-    const toast = page.locator(selector).first();
-    const appeared = await toast.waitFor({ state: 'visible', timeout: 3000 }).then(() => true).catch(() => false);
+  // ===== 辅助：设置账户模式（如与目标不符则自动切换）=====
+  async function setAccountSettings(page: any, assetMode: string, positionMode: string, marginMode: string) {
+    console.log(`[settings] 目标: 资产=${assetMode} | 持仓=${positionMode} | 保证金=${marginMode}`);
 
-    if (appeared) {
-      const text = await toast.textContent();
-      console.log(`[test] ✅ ${label}: ${text?.trim()}`);
-      const filename = `test-results/toast-${label.replace(/[^a-zA-Z0-9\u4e00-\u9fa5]/g, '_')}-${Date.now()}.png`;
-      await page.screenshot({ path: filename, fullPage: false });
-      console.log(`[test] 📸 截图已保存: ${filename}`);
-      return true;
-    }
+    // ── 资产模式 + 持仓模式（Settings 内）──
+    const settingsBtn = page.locator('button:has-text("Open Settings")');
+    await settingsBtn.click();
+    await page.waitForTimeout(800);
 
-    console.log(`[test] ⚠️ 未检测到 ${label} 提示，继续执行`);
-    return false;
-  }
-
-
-  // ========================================================
-  // 测试 1：止盈止损限价委托下单
-  // ========================================================
-  test('止盈止损限价委托下单', async ({ loggedInPage: page }) => {
-    await page.goto(process.env.EXCHANGE_URL!);
-    await page.waitForLoadState('domcontentloaded');
-    await page.waitForTimeout(3000);
-
-    // 读取 Mark Price
-    const markPriceEl = page.locator('dt:has-text("标记价格")').locator('..').locator('dd').first();
-    await expect(markPriceEl).toBeVisible({ timeout: 10000 });
-    const markPriceText = await markPriceEl.textContent();
-    markPrice = parseFloat((markPriceText || '0').replace(/,/g, '').trim());
-    console.log(`[test] Mark Price: ${markPrice}`);
-
-    // 选择「限价止盈止损」（combobox 类型）
-    const tpslCombobox = page.locator('[role="combobox"]:has-text("限价止盈止损"), [role="combobox"]:has-text("止盈止损")').first();
-    if (await tpslCombobox.isVisible({ timeout: 3000 }).catch(() => false)) {
-      await tpslCombobox.click();
+    // 资产模式
+    const assetBtn = page.getByRole('button', { name: /联合保证金模式|单币保证金模式/ }).first();
+    const currentAsset = (await assetBtn.textContent().catch(() => '')).trim();
+    if (currentAsset !== assetMode) {
+      await assetBtn.click();
+      await page.waitForTimeout(800);
+      await page.locator('[role="dialog"]').getByText(assetMode).first().click();
+      await page.waitForTimeout(300);
+      await page.locator('[role="dialog"] button:has-text("确认")').click();
+      await page.waitForTimeout(1500);
+      await page.keyboard.press('Escape');
       await page.waitForTimeout(500);
-      const tpslOption = page.locator('[role="option"]:has-text("限价止盈止损")').first();
-      if (await tpslOption.isVisible({ timeout: 2000 }).catch(() => false)) {
-        await tpslOption.click();
-        console.log('[test] 已选择限价止盈止损');
-      }
-    } else {
-      // 备用：直接点击 TP/SL 标签
-      const tpslTab = page.locator('button:text("止盈止损"), button:text("TP/SL")').first();
-      if (await tpslTab.isVisible({ timeout: 2000 }).catch(() => false)) {
-        await tpslTab.click();
-        console.log('[test] 点击了止盈止损 Tab');
-      }
+      console.log(`[settings] ✅ 资产模式 → ${assetMode}`);
+      // 重新打开 Settings
+      await settingsBtn.click();
+      await page.waitForTimeout(800);
     }
+
+    // 持仓模式
+    const posSpan = page.locator('span.mr-1').filter({ hasText: /单向持仓模式|双向持仓模式/ }).first();
+    const currentPos = (await posSpan.textContent().catch(() => '')).trim();
+    if (currentPos !== positionMode) {
+      await posSpan.locator('..').click();
+      await page.waitForTimeout(800);
+      await page.locator('[role="dialog"]').getByText(positionMode).first().click();
+      await page.waitForTimeout(300);
+      await page.locator('[role="dialog"] button:has-text("确认")').click();
+      await page.waitForTimeout(1500);
+      await page.keyboard.press('Escape');
+      await page.waitForTimeout(500);
+      console.log(`[settings] ✅ 持仓模式 → ${positionMode}`);
+    } else {
+      await page.keyboard.press('Escape');
+      await page.waitForTimeout(500);
+    }
+
+    // ── 保证金模式（下单区域）──
+    const targetVisible = await page.locator(`button:has-text("${marginMode}")`).first().isVisible({ timeout: 2000 }).catch(() => false);
+    if (!targetVisible) {
+      const opposite = marginMode === '全仓' ? '逐仓' : '全仓';
+      await page.locator(`button:has-text("${opposite}")`).first().click();
+      await page.waitForTimeout(800);
+      await page.locator(`[role="dialog"] button:has-text("${marginMode}")`).click();
+      await page.waitForTimeout(300);
+      await page.locator('[role="dialog"] button:has-text("确认")').click();
+      await page.waitForTimeout(1200);
+      console.log(`[settings] ✅ 保证金模式 → ${marginMode}`);
+    }
+
+    console.log('[settings] 设置完毕\n');
+  }
+
+  // ===== 辅助：市价下单（内含 Toast 捕获）=====
+  async function placeMarketOrder(page: any, direction: 'long' | 'short', qty: string) {
+    await page.locator('#tour-guide-place-order button:text("市价"), button:text("市价")').first().click();
     await page.waitForTimeout(500);
 
-    // 输入触发价格（mark price + 500 用于止盈）
-    const triggerPrice = Math.floor(markPrice + 500);
-    const triggerInput = page.locator('input[placeholder*="触发价"], input[placeholder*="止盈价"], input[placeholder*="Trigger"]').first();
-    if (await triggerInput.isVisible({ timeout: 3000 }).catch(() => false)) {
-      await triggerInput.clear();
-      await triggerInput.fill(String(triggerPrice));
-      console.log(`[test] 输入触发价格: ${triggerPrice}`);
+    const combobox = page.locator('#tour-guide-place-order button[role="combobox"]');
+    if (await combobox.isVisible({ timeout: 2000 }).catch(() => false)) {
+      await combobox.click();
+      await page.locator('[role="option"]:has-text("BTC")').click();
+      await page.waitForTimeout(300);
     }
 
-    // 输入委托价格
-    const orderPrice = Math.floor(markPrice + 600);
-    const priceInput = page.locator('input[placeholder="价格"]').first();
-    if (await priceInput.isVisible({ timeout: 3000 }).catch(() => false)) {
-      await priceInput.clear();
-      await priceInput.fill(String(orderPrice));
-    }
-
-    // 输入数量
     const qtyInput = page.locator('input[placeholder="数量"]');
     await qtyInput.clear();
-    await qtyInput.fill('0.001');
+    await qtyInput.fill(qty);
     await page.waitForTimeout(500);
 
-    // 点击买入做多
-    await page.locator('button[type="submit"]').first().click();
+    // 清空 Toast 缓冲，准备捕获本次下单的 Toast
+    await page.evaluate(() => { (window as any).__toastCaptures = []; });
+
+    const submitBtn = direction === 'long'
+        ? page.locator('button[type="submit"]').first()
+        : page.locator('button[type="submit"]').nth(1);
+    await submitBtn.click();
     await page.waitForTimeout(500);
 
     await handleConfirmDialog(page);
-    await page.waitForTimeout(1000);
-
-    await checkToast(page, ['下单成功', '委托成功', '成功提交', 'Order placed', 'Success'], '止盈止损下单');
-
-    // 验证当前委托
-    await page.locator('button[role="tab"]:has-text("当前委托")').click();
-    await page.waitForTimeout(1000);
-    console.log('[test] ✅ 止盈止损委托下单完成');
-  });
-
-
-  // ========================================================
-  // 测试 2：取消止盈止损委托单
-  // ========================================================
-  test('取消止盈止损委托单', async ({ loggedInPage: page }) => {
-    // 复用 test 1 已打开的页面，无需重新导航
-
-    await page.locator('button[role="tab"]:has-text("当前委托")').click();
-    await page.waitForTimeout(1000);
-
-    const firstCancelBtn = page.locator('button:text("取消")').first();
-    if (!(await firstCancelBtn.isVisible({ timeout: 5000 }).catch(() => false))) {
-      console.log('[test] ⚠️ 没有委托订单，跳过');
-      return;
-    }
-    await firstCancelBtn.click();
-    await page.waitForTimeout(500);
-
-    const confirmBtn = page.getByRole('button', { name: '确认' });
-    if (await confirmBtn.isVisible({ timeout: 3000 }).catch(() => false)) {
-      await confirmBtn.click();
-      console.log('[test] 确认取消弹窗已点击');
-    }
-    await page.waitForTimeout(1500);
-
-    await checkToast(page, ['取消成功', '撤单成功', '已取消', 'Cancelled', 'Cancel success'], '取消止盈止损');
-    console.log('[test] ✅ 取消止盈止损委托完成');
-  });
-
-
-  // ========================================================
-  // 测试 3：全部撤销（一键撤销所有委托）
-  // ========================================================
-  test('一键撤销所有委托单', async ({ loggedInPage: page }) => {
-    // 复用 test 2 已打开的页面，无需重新导航
-
-    await page.locator('button[role="tab"]:has-text("当前委托")').click();
-    await page.waitForTimeout(1000);
-
-    // 查找「全部撤销」/ 「撤销全部」按钮
-    const cancelAllBtn = page.locator('button:text("全部撤销"), button:text("撤销全部"), button:text("Cancel All")').first();
-    if (!(await cancelAllBtn.isVisible({ timeout: 3000 }).catch(() => false))) {
-      console.log('[test] ⚠️ 未找到全部撤销按钮或无委托单，跳过');
-      return;
-    }
-
-    await cancelAllBtn.click();
-    await page.waitForTimeout(500);
-
-    // 确认弹窗
-    const confirmBtn = page.getByRole('button', { name: '确认' });
-    if (await confirmBtn.isVisible({ timeout: 3000 }).catch(() => false)) {
-      await confirmBtn.click();
-      console.log('[test] 确认全部撤销');
-    }
     await page.waitForTimeout(2000);
 
-    await checkToast(page, ['取消成功', '撤单成功', '已取消', 'Cancelled'], '全部撤销');
-    console.log('[test] ✅ 全部撤销完成');
-  });
+    // 读取下单 Toast
+    await readToasts(page, `市价${direction === 'long' ? '开多' : '开空'}`);
+    console.log(`[order] 已下单 市价${direction === 'long' ? '开多' : '开空'} ${qty} BTC`);
+  }
 
+  // ===== 辅助：市价平仓所有仓位（内含 Toast 捕获）=====
+  async function closeAllPositions(page: any) {
+    await page.locator('button[role="tab"]:has-text("仓位")').click();
+    await page.waitForTimeout(1000);
 
-  // ========================================================
-  // 测试 4：TWAP 策略创建入口可用
-  // ========================================================
-  test('TWAP 策略创建入口可用', async ({ loggedInPage: page }) => {
-    // 复用 test 3 已打开的页面（合约交易页面）
-
-    // 点击底部 TWAP Tab
-    const twapTab = page.locator('button[role="tab"]:has-text("TWAP"), text=TWAP').first();
-    if (!(await twapTab.isVisible({ timeout: 5000 }).catch(() => false))) {
-      console.log('[test] ⚠️ 未找到 TWAP Tab，跳过');
+    const count = await getPositionRowCount(page);
+    if (count === 0) {
+      console.log('[close] 无仓位，无需平仓');
       return;
     }
+    console.log(`[close] 开始平仓，共 ${count} 个仓位`);
 
-    await twapTab.click();
-    console.log('[test] 点击了 TWAP Tab');
-    await page.waitForTimeout(1500);
-
-    // 验证 TWAP 策略参数面板出现
-    const twapKeywords = ['TWAP', '创建 TWAP', '创建策略', '总数量', '执行间隔', 'Create', 'Total', 'Interval'];
-    let twapUiFound = false;
-    for (const kw of twapKeywords) {
-      const el = page.locator(`text=${kw}`).first();
-      if (await el.isVisible({ timeout: 3000 }).catch(() => false)) {
-        console.log(`[test] ✅ 找到 TWAP 元素: "${kw}"`);
-        twapUiFound = true;
+    for (let i = 0; i < count; i++) {
+      const posRow = page.locator('tbody tr:has-text("BTCUSDT"), [role="row"]:has-text("BTCUSDT")').first();
+      let closeBtn = posRow.locator('button:text("市价")').first();
+      if (!(await closeBtn.isVisible({ timeout: 2000 }).catch(() => false))) {
+        closeBtn = page.locator('button:text("市价")').last();
+      }
+      if (!(await closeBtn.isVisible({ timeout: 3000 }).catch(() => false))) {
+        console.log('[close] ⚠️ 未找到平仓按钮，停止');
         break;
       }
+
+      // 清空 Toast 缓冲
+      await page.evaluate(() => { (window as any).__toastCaptures = []; });
+
+      await closeBtn.click();
+      await page.waitForTimeout(1500);
+      const confirmBtn = page.locator('button:text("确认")');
+      if (await confirmBtn.isVisible({ timeout: 3000 }).catch(() => false)) {
+        await confirmBtn.click();
+      }
+      await page.waitForTimeout(2000);
+
+      // 读取平仓 Toast
+      await readToasts(page, `平仓 #${i + 1}`);
     }
 
-    if (!twapUiFound) {
-      console.log('[test] ⚠️ 未找到 TWAP 参数面板');
-    }
+    await expect.poll(
+        () => getPositionRowCount(page),
+        { timeout: 15000, intervals: [1000, 2000, 3000], message: '平仓后仓位应为 0' }
+    ).toBe(0);
+    console.log('[close] ✅ 所有仓位已平仓');
+  }
 
-    await page.screenshot({ path: `test-results/future-twap-${Date.now()}.png` });
-    console.log('[test] ✅ TWAP 策略入口验证完成');
+
+  // ===== beforeEach：启动 Toast 监听 + 清理残留仓位 =====
+  test.beforeEach(async ({ loggedInPage: page }) => {
+    // 启动 Toast MutationObserver（如已启动则幂等）
+    await startToastListener(page);
+
+    await page.locator('button[role="tab"]:has-text("仓位")').click();
+    await page.waitForTimeout(1000);
+    const residual = await getPositionRowCount(page);
+    if (residual > 0) {
+      console.log(`[beforeEach] 发现残留仓位 ${residual} 个，清理中...`);
+      await closeAllPositions(page);
+    }
   });
 
 
-  // ========================================================
-  // 测试 5：资金费率和倒计时信息可见
-  // ========================================================
-  test('页面顶部资金费率和倒计时信息格式正确', async ({ loggedInPage: page }) => {
-    // 复用 test 4 已打开的页面，无需重新导航
+  // ===== 12 个测试用例（数据驱动）=====
+  for (const tc of TEST_CASES) {
+    const label = `${tc.id}: ${tc.assetMode} | ${tc.positionMode} | ${tc.marginMode} | 市价${tc.direction === 'long' ? '开多' : '开空'}`;
 
-    // 验证资金费率（通常格式为 -0.00xx% / 0.xxxx）
-    const fundingRateKeywords = ['资金费率', 'Funding Rate', '倒计时'];
-    let fundingFound = false;
-    for (const kw of fundingRateKeywords) {
-      const el = page.locator(`text=${kw}`).first();
-      if (await el.isVisible({ timeout: 5000 }).catch(() => false)) {
-        console.log(`[test] ✅ 找到资金费率元素: "${kw}"`);
-        fundingFound = true;
-        break;
-      }
-    }
+    test(label, async ({ loggedInPage: page }) => {
+      // 1. 查看当前设置（日志）
+      await logCurrentSettings(page);
 
-    if (!fundingFound) {
-      console.log('[test] ⚠️ 未找到资金费率元素，跳过');
-      return;
-    }
+      // 2. 设置目标模式
+      await setAccountSettings(page, tc.assetMode, tc.positionMode, tc.marginMode);
 
-    // 验证倒计时格式（HH:MM:SS 格式）
-    const countdownEl = page.locator('text=/\\d{1,2}:\\d{2}:\\d{2}/').first();
-    const hasCountdown = await countdownEl.isVisible({ timeout: 3000 }).catch(() => false);
-    console.log(`[test] 倒计时: ${hasCountdown ? '✅ 格式正确（HH:MM:SS）' : '⚠️ 未找到'}`);
+      // 3. 市价下单
+      await placeMarketOrder(page, tc.direction, '0.001');
 
-    // 验证资金费率数值（含 % 号）
-    const rateValueEl = page.locator('text=/-?\\d+\\.\\d+%/').first();
-    const hasRateValue = await rateValueEl.isVisible({ timeout: 3000 }).catch(() => false);
-    console.log(`[test] 资金费率数值: ${hasRateValue ? '✅ 可见' : '⚠️ 未找到'}`);
+      // 4. 检查仓位 开仓成功
+      await page.locator('button[role="tab"]:has-text("仓位")').click();
+      await expect.poll(
+          () => getPositionRowCount(page),
+          { timeout: 10000, intervals: [1000, 2000], message: `${tc.id} 开仓后应有仓位` }
+      ).toBeGreaterThan(0);
+      console.log(`[test] ✅ ${tc.id} 开仓成功`);
 
-    console.log('[test] ✅ 资金费率信息验证完成');
-  });
+      // 5. 市价平仓
+      await closeAllPositions(page);
+    });
+  }
 
 });
