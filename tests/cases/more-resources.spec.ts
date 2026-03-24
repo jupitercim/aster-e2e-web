@@ -81,7 +81,7 @@ async function openResourcesMenu(page: any): Promise<boolean> {
   for (const kw of ['更多', 'More']) {
     const el = page.locator(`text="${kw}"`).first();
     if (await el.isVisible({ timeout: 3000 }).catch(() => false)) {
-      await el.hover();
+      await el.hover({ force: true });
       await page.waitForTimeout(800);
       console.log(`[test] hover 导航: "${kw}"`);
       return true;

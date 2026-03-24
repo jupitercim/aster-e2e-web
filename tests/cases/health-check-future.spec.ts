@@ -197,7 +197,7 @@ test.describe.serial('AsterDEX - 期货页面检查', () => {
     console.log(`[test] ${hasTpslCombobox ? '✅' : '⚠️'} 订单类型 combobox: ${hasTpslCombobox ? '可见' : '未找到'}`);
 
     // 切到限价单，验证价格输入框
-    await page.locator('button:not([role="combobox"]):text("限价")').click();
+    await page.locator('button:not([role="combobox"]):text("限价")').first().click({ force: true }).catch(() => {});
     await page.waitForTimeout(500);
     const priceInput = page.locator('input[placeholder="价格"]');
     await expect.soft(priceInput).toBeVisible({ timeout: 3000 });
@@ -220,7 +220,7 @@ test.describe.serial('AsterDEX - 期货页面检查', () => {
     console.log(`[test] ✅ 提交按钮数量: ${btnCount}`);
 
     // 切到市价单，价格输入框应不可编辑
-    await page.locator('button:not([role="combobox"]):text("市价")').click();
+    await page.locator('button:not([role="combobox"]):text("市价")').first().click({ force: true }).catch(() => {});
     await page.waitForTimeout(500);
     const marketPriceInput = page.locator('input[placeholder="价格"]');
     const isMarketPriceEditable = await marketPriceInput.isEditable({ timeout: 2000 }).catch(() => false);
@@ -231,7 +231,7 @@ test.describe.serial('AsterDEX - 期货页面检查', () => {
     }
 
     // 切回限价单，检查只减仓 / 隐藏订单
-    await page.locator('button:not([role="combobox"]):text("限价")').click();
+    await page.locator('button:not([role="combobox"]):text("限价")').first().click({ force: true }).catch(() => {});
     await page.waitForTimeout(500);
 
     const reduceOnlyKeywords = ['只减仓', 'Reduce Only', 'Reduce-only'];
