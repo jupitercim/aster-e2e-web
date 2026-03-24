@@ -8,7 +8,7 @@ test.describe.serial('AsterDEX - 期货页面检查', () => {
   // ========================================================
   // 测试 1：页面加载与基础布局
   // ========================================================
-  test('页面加载与基础布局', async ({ loggedInPage: page }) => {
+  test('页面加载与基础布局', { tag: ['@P0'] }, async ({ loggedInPage: page }) => {
     await page.goto(process.env.EXCHANGE_URL!);
     await page.waitForLoadState('domcontentloaded');
     await page.waitForTimeout(3000);
@@ -36,7 +36,7 @@ test.describe.serial('AsterDEX - 期货页面检查', () => {
   // ========================================================
   // 测试 2：顶部行情栏数据
   // ========================================================
-  test('顶部行情栏数据', async ({ loggedInPage: page }) => {
+  test('顶部行情栏数据', { tag: ['@P0'] }, async ({ loggedInPage: page }) => {
     // 复用 test 1 已打开的页面
 
     // 标记价格（多种选择器兼容）
@@ -127,7 +127,7 @@ test.describe.serial('AsterDEX - 期货页面检查', () => {
   // ========================================================
   // 测试 3：图表区域
   // ========================================================
-  test('图表区域', async ({ loggedInPage: page }) => {
+  test('图表区域', { tag: ['@P0'] }, async ({ loggedInPage: page }) => {
     // 复用已打开的页面
 
     // 等待页面稳定
@@ -179,7 +179,7 @@ test.describe.serial('AsterDEX - 期货页面检查', () => {
   // ========================================================
   // 测试 4：下单面板
   // ========================================================
-  test('下单面板', async ({ loggedInPage: page }) => {
+  test('下单面板', { tag: ['@P0'] }, async ({ loggedInPage: page }) => {
     // 确保页面在期货交易页（全量跑时 worker 可能复用了其他 spec 的导航）
     await page.goto(process.env.EXCHANGE_URL!);
     await page.waitForLoadState('domcontentloaded');
@@ -294,7 +294,7 @@ test.describe.serial('AsterDEX - 期货页面检查', () => {
   // ========================================================
   // 测试 5：订单簿
   // ========================================================
-  test('订单簿', async ({ loggedInPage: page }) => {
+  test('订单簿', { tag: ['@P0'] }, async ({ loggedInPage: page }) => {
     // 复用已打开的页面
 
     // 探查订单簿容器（多种可能的 class 命名）
@@ -339,7 +339,7 @@ test.describe.serial('AsterDEX - 期货页面检查', () => {
   // ========================================================
   // 测试 6：最近成交
   // ========================================================
-  test('最近成交', async ({ loggedInPage: page }) => {
+  test('最近成交', { tag: ['@P0'] }, async ({ loggedInPage: page }) => {
     // 复用已打开的页面
 
     // 找到最近成交 Tab 或区域（实际 Tab 文本为"最新成交"）
@@ -376,7 +376,7 @@ test.describe.serial('AsterDEX - 期货页面检查', () => {
   // ========================================================
   // 测试 7：底部面板 Tabs（持仓 & 委托）
   // ========================================================
-  test('底部面板 Tabs（持仓 & 委托）', async ({ loggedInPage: page }) => {
+  test('底部面板 Tabs（持仓 & 委托）', { tag: ['@P0'] }, async ({ loggedInPage: page }) => {
     // 复用已打开的页面
 
     const bottomTabs = [
@@ -428,7 +428,7 @@ test.describe.serial('AsterDEX - 期货页面检查', () => {
   // ========================================================
   // 测试 8：全页截图
   // ========================================================
-  test('全页截图', async ({ loggedInPage: page }) => {
+  test('全页截图', { tag: ['@P0'] }, async ({ loggedInPage: page }) => {
     // 滚动回顶部，截取完整页面
     await page.evaluate(() => window.scrollTo(0, 0));
     await page.waitForTimeout(500);

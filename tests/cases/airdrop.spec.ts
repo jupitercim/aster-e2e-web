@@ -12,7 +12,7 @@ test.describe.serial('AsterDEX - 空投（Airdrop）', () => {
   // ========================================================
   // 测试 1：空投页面正常加载，显示当前阶段信息
   // ========================================================
-  test('空投页面正常加载，显示阶段信息', async ({ loggedInPage: page }) => {
+  test('空投页面正常加载，显示阶段信息', { tag: ['@P0'] }, async ({ loggedInPage: page }) => {
     const url = getAirdropUrl();
     console.log(`[test] 空投 URL: ${url}`);
 
@@ -58,7 +58,7 @@ test.describe.serial('AsterDEX - 空投（Airdrop）', () => {
   // ========================================================
   // 测试 2：阶段切换下拉可用
   // ========================================================
-  test('阶段切换下拉菜单可用', async ({ loggedInPage: page }) => {
+  test('阶段切换下拉菜单可用', { tag: ['@P0'] }, async ({ loggedInPage: page }) => {
     // 复用 test 1 已打开的页面，无需重新导航
 
     // 找到阶段选择器（如「第5阶段」下拉）
@@ -88,7 +88,7 @@ test.describe.serial('AsterDEX - 空投（Airdrop）', () => {
   // ========================================================
   // 测试 3：FAQ 折叠展开
   // ========================================================
-  test('FAQ 折叠展开功能正常', async ({ loggedInPage: page }) => {
+  test('FAQ 折叠展开功能正常', { tag: ['@P0'] }, async ({ loggedInPage: page }) => {
     // 复用 test 2 已打开的页面，无需重新导航
 
     const faqKeywords = ['ASTER 代币是什么', '常见问题', 'FAQ'];

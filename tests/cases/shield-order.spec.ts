@@ -107,7 +107,7 @@ test.describe.serial('AsterDEX - Shield 模式交易', () => {
   // ========================================================
   // 测试 1：Shield 模式页面加载验证
   // ========================================================
-  test('Shield 模式页面可正常加载', async ({ loggedInPage: page }) => {
+  test('Shield 模式页面可正常加载', { tag: ['@P0'] }, async ({ loggedInPage: page }) => {
     const shieldUrl = getShieldUrl();
     console.log(`[test] Shield URL: ${shieldUrl}`);
 
@@ -135,7 +135,7 @@ test.describe.serial('AsterDEX - Shield 模式交易', () => {
   // ========================================================
   // 测试 2：Shield 模式限价买入
   // ========================================================
-  test('Shield 模式限价买入 0.001 BTC', async ({ loggedInPage: page }) => {
+  test('Shield 模式限价买入 0.001 BTC', { tag: ['@P0'] }, async ({ loggedInPage: page }) => {
     // 复用 test 1 已打开的页面，无需重新导航
 
     // 选择限价单
@@ -182,7 +182,7 @@ test.describe.serial('AsterDEX - Shield 模式交易', () => {
   // ========================================================
   // 测试 3：取消 Shield 委托单
   // ========================================================
-  test('取消 Shield 委托单', async ({ loggedInPage: page }) => {
+  test('取消 Shield 委托单', { tag: ['@P0'] }, async ({ loggedInPage: page }) => {
     // 复用 test 2 已打开的页面，无需重新导航
 
     // Shield 页面 Tab 文案可能与期货页不同，逐一尝试
@@ -220,7 +220,7 @@ test.describe.serial('AsterDEX - Shield 模式交易', () => {
   // ========================================================
   // 测试 4：网格交易 - 手动创建做多策略
   // ========================================================
-  test('网格交易 - 手动创建做多策略（价格区间 mark-2000 ~ mark-1000，5格）', async ({ loggedInPage: page }) => {
+  test('网格交易 - 手动创建做多策略（价格区间 mark-2000 ~ mark-1000，5格）', { tag: ['@P0'] }, async ({ loggedInPage: page }) => {
     await page.goto(getGridUrl());
     await page.waitForLoadState('domcontentloaded');
     await page.waitForTimeout(5000);
@@ -338,7 +338,7 @@ test.describe.serial('AsterDEX - Shield 模式交易', () => {
   // ========================================================
   // 测试 5：网格交易 - 查看策略列表并验证详情
   // ========================================================
-  test('网格交易 - 查看策略详情并终止', async ({ loggedInPage: page }) => {
+  test('网格交易 - 查看策略详情并终止', { tag: ['@P0'] }, async ({ loggedInPage: page }) => {
     await page.goto(getGridUrl());
     await page.waitForLoadState('domcontentloaded');
     await page.waitForTimeout(4000);

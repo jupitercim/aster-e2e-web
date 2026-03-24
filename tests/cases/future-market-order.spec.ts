@@ -56,7 +56,7 @@ test.describe.serial('AsterDEX - 期货市价委托', () => {
   // ========================================================
   // 测试 1：市价开多 0.001 BTC
   // ========================================================
-  test('市价开多 BTC/USDT 0.001 BTC', async ({ loggedInPage: page }) => {
+  test('市价开多 BTC/USDT 0.001 BTC', { tag: ['@P0'] }, async ({ loggedInPage: page }) => {
     await page.goto(process.env.EXCHANGE_URL!);
     await page.waitForLoadState('domcontentloaded');
     await page.waitForTimeout(3000);
@@ -101,7 +101,7 @@ test.describe.serial('AsterDEX - 期货市价委托', () => {
   // ========================================================
   // 测试 2：市价开空 0.001 BTC
   // ========================================================
-  test('市价开空 BTC/USDT 0.001 BTC', async ({ loggedInPage: page }) => {
+  test('市价开空 BTC/USDT 0.001 BTC', { tag: ['@P0'] }, async ({ loggedInPage: page }) => {
     // 复用 test 1 已打开的页面，无需重新导航
 
     // 选择市价单
@@ -137,7 +137,7 @@ test.describe.serial('AsterDEX - 期货市价委托', () => {
   // ========================================================
   // 测试 3：市价平仓所有持仓
   // ========================================================
-  test('市价平仓第一个持仓', async ({ loggedInPage: page }) => {
+  test('市价平仓第一个持仓', { tag: ['@P0'] }, async ({ loggedInPage: page }) => {
     // 复用 test 2 已打开的页面，无需重新导航
 
     await page.locator('button[role="tab"]:has-text("仓位")').click();

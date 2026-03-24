@@ -8,7 +8,7 @@ test.describe.serial('AsterDEX - Shield 交易页面检查', () => {
   // ========================================================
   // 测试 1：页面加载与基础布局
   // ========================================================
-  test('页面加载与基础布局', async ({ loggedInPage: page }) => {
+  test('页面加载与基础布局', { tag: ['@P0'] }, async ({ loggedInPage: page }) => {
     // 1. 导航至 Shield 页面，等待 domcontentloaded 后再等待 3 秒
     const base = process.env.EXCHANGE_URL!;
     const shieldUrl = `${new URL(base).origin}/zh-CN/trade/shield/futures/BTCUSDT`;
@@ -42,7 +42,7 @@ test.describe.serial('AsterDEX - Shield 交易页面检查', () => {
   // ========================================================
   // 测试 2：顶部行情栏数据
   // ========================================================
-  test('顶部行情栏数据', async ({ loggedInPage: page }) => {
+  test('顶部行情栏数据', { tag: ['@P0'] }, async ({ loggedInPage: page }) => {
     // 复用 test 1 已打开的页面
 
     // 1. 查找交易对标题，确认显示 BTC/USDT 字样
@@ -122,7 +122,7 @@ test.describe.serial('AsterDEX - Shield 交易页面检查', () => {
   // ========================================================
   // 测试 3：图表区域
   // ========================================================
-  test('图表区域', async ({ loggedInPage: page }) => {
+  test('图表区域', { tag: ['@P0'] }, async ({ loggedInPage: page }) => {
     // 复用已打开的页面
 
     // 1. 等待 2 秒，查找 TradingView iframe（宽>200, 高>150）
@@ -180,7 +180,7 @@ test.describe.serial('AsterDEX - Shield 交易页面检查', () => {
   // ========================================================
   // 测试 4：下单面板
   // ========================================================
-  test('下单面板', async ({ loggedInPage: page }) => {
+  test('下单面板', { tag: ['@P0'] }, async ({ loggedInPage: page }) => {
     // 复用已打开的页面
     // Shield 页面为特殊 UI：做多/做空方向按钮 + 保证金输入 + 杠杆滑块
 
@@ -267,7 +267,7 @@ test.describe.serial('AsterDEX - Shield 交易页面检查', () => {
   // ========================================================
   // 测试 5：订单簿
   // ========================================================
-  test('订单簿', async ({ loggedInPage: page }) => {
+  test('订单簿', { tag: ['@P0'] }, async ({ loggedInPage: page }) => {
     // 复用已打开的页面
     // Shield 页面可能不显示传统订单簿，以 warn 方式探测
 
@@ -303,7 +303,7 @@ test.describe.serial('AsterDEX - Shield 交易页面检查', () => {
   // ========================================================
   // 测试 6：最新成交
   // ========================================================
-  test('最新成交', async ({ loggedInPage: page }) => {
+  test('最新成交', { tag: ['@P0'] }, async ({ loggedInPage: page }) => {
     // 复用已打开的页面
 
     // 1. 点击 最新成交 Tab，等待 500ms
@@ -345,7 +345,7 @@ test.describe.serial('AsterDEX - Shield 交易页面检查', () => {
   // ========================================================
   // 测试 7：底部面板 Tabs
   // ========================================================
-  test('底部面板 Tabs', async ({ loggedInPage: page }) => {
+  test('底部面板 Tabs', { tag: ['@P0'] }, async ({ loggedInPage: page }) => {
     // 复用已打开的页面
 
     // 1. 依次点击 Shield 页面底部 Tabs，每次等待 1 秒
@@ -409,7 +409,7 @@ test.describe.serial('AsterDEX - Shield 交易页面检查', () => {
   // ========================================================
   // 测试 8：全页截图
   // ========================================================
-  test('全页截图', async ({ loggedInPage: page }) => {
+  test('全页截图', { tag: ['@P0'] }, async ({ loggedInPage: page }) => {
     // 1. 滚动回顶部，等待 500ms
     await page.evaluate(() => window.scrollTo(0, 0));
     await page.waitForTimeout(500);

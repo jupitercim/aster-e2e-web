@@ -12,7 +12,7 @@ test.describe.serial('AsterDEX - API 管理', () => {
   // ========================================================
   // 测试 1：API 管理页面正常加载
   // ========================================================
-  test('API 管理页面正常加载', async ({ loggedInPage: page }) => {
+  test('API 管理页面正常加载', { tag: ['@P0'] }, async ({ loggedInPage: page }) => {
     const url = getApiManagementUrl();
     console.log(`[test] API Management URL: ${url}`);
 
@@ -53,7 +53,7 @@ test.describe.serial('AsterDEX - API 管理', () => {
   // ========================================================
   // 测试 2：API / 专业API Tab 切换
   // ========================================================
-  test('API 与专业API Tab 切换正常', async ({ loggedInPage: page }) => {
+  test('API 与专业API Tab 切换正常', { tag: ['@P0'] }, async ({ loggedInPage: page }) => {
     // 复用 test 1 已打开的页面，无需重新导航
 
     // 点击「专业API」Tab
@@ -81,7 +81,7 @@ test.describe.serial('AsterDEX - API 管理', () => {
   // ========================================================
   // 测试 3：点击「创建 API」弹窗出现
   // ========================================================
-  test('创建 API 按钮点击后弹窗出现', async ({ loggedInPage: page }) => {
+  test('创建 API 按钮点击后弹窗出现', { tag: ['@P0'] }, async ({ loggedInPage: page }) => {
     // 复用 test 2 已打开的页面，无需重新导航
 
     // 关闭任何已打开的弹窗（上一测试可能留下 overlay）

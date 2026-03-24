@@ -7,7 +7,7 @@ import { LEVEL1_PAGES } from '../config/pages.config';
 test.describe('全站页面视觉检查', () => {
   test.describe.configure({ retries: 0, timeout: 1800000 });
 
-  test('全站视觉检查', async ({ page, context, baseURL }) => {
+  test('全站视觉检查', { tag: ['@P0'] }, async ({ page, context, baseURL }) => {
     // 从 project 的 baseURL 取 origin + /zh-CN，忽略后面的路径
     const BASE_URL = baseURL
       ? `${new URL(baseURL).origin}/zh-CN`

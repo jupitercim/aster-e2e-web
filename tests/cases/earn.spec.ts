@@ -12,7 +12,7 @@ test.describe.serial('AsterDEX - 赚取（Earn）', () => {
   // ========================================================
   // 测试 1：Earn 页面正常加载，标题与策略列表可见
   // ========================================================
-  test('Earn 页面正常加载，标题与策略列表可见', async ({ loggedInPage: page }) => {
+  test('Earn 页面正常加载，标题与策略列表可见', { tag: ['@P0'] }, async ({ loggedInPage: page }) => {
     const url = getEarnUrl();
     console.log(`[test] Earn URL: ${url}`);
 
@@ -55,7 +55,7 @@ test.describe.serial('AsterDEX - 赚取（Earn）', () => {
   // ========================================================
   // 测试 2：切换「赚取」与「生态系统」Tab
   // ========================================================
-  test('赚取与生态系统 Tab 切换正常', async ({ loggedInPage: page }) => {
+  test('赚取与生态系统 Tab 切换正常', { tag: ['@P0'] }, async ({ loggedInPage: page }) => {
     const ecoTab = page.locator('button:has-text("生态系统"), text=生态系统').first();
     if (await ecoTab.isVisible({ timeout: 3000 }).catch(() => false)) {
       await ecoTab.click();
@@ -80,7 +80,7 @@ test.describe.serial('AsterDEX - 赚取（Earn）', () => {
   // ========================================================
   // 测试 3：点击产品进入详情（铸造/查看详情）
   // ========================================================
-  test('点击产品能进入详情', async ({ loggedInPage: page }) => {
+  test('点击产品能进入详情', { tag: ['@P0'] }, async ({ loggedInPage: page }) => {
     const detailEntrySelectors = [
       'button:has-text("铸造")',
       'button:has-text("Mint")',

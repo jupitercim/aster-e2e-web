@@ -61,7 +61,7 @@ test.describe.serial('AsterDEX - 现货交易', () => {
   // ========================================================
   // 测试 1：现货交易页面正常加载
   // ========================================================
-  test('现货交易页面正常加载', async ({ loggedInPage: page }) => {
+  test('现货交易页面正常加载', { tag: ['@P0'] }, async ({ loggedInPage: page }) => {
     const url = getSpotUrl();
     console.log(`[test] 现货 URL: ${url}`);
 
@@ -88,7 +88,7 @@ test.describe.serial('AsterDEX - 现货交易', () => {
   // ========================================================
   // 测试 2：BTC/USDT 限价买入
   // ========================================================
-  test('BTC/USDT 限价买入挂单', async ({ loggedInPage: page }) => {
+  test('BTC/USDT 限价买入挂单', { tag: ['@P0'] }, async ({ loggedInPage: page }) => {
     // 复用 test 1 已打开的页面，无需重新导航
 
     // 选择限价单
@@ -133,7 +133,7 @@ test.describe.serial('AsterDEX - 现货交易', () => {
   // ========================================================
   // 测试 3：切换交易对（从 BTCUSDT → ETHUSDT）
   // ========================================================
-  test('切换交易对（BTCUSDT → ETHUSDT）', async ({ loggedInPage: page }) => {
+  test('切换交易对（BTCUSDT → ETHUSDT）', { tag: ['@P0'] }, async ({ loggedInPage: page }) => {
     // 复用 test 2 已打开的页面，无需重新导航
 
     // 点击交易对选择器（页面左上角的交易对名称）
@@ -188,7 +188,7 @@ test.describe.serial('AsterDEX - 现货交易', () => {
   // ========================================================
   // 测试 4：查看历史成交记录
   // ========================================================
-  test('历史成交记录 Tab 可切换', async ({ loggedInPage: page }) => {
+  test('历史成交记录 Tab 可切换', { tag: ['@P0'] }, async ({ loggedInPage: page }) => {
     // 切换回 BTC/USDT 现货页
     await page.goto(getSpotUrl());
     await page.waitForLoadState('domcontentloaded');

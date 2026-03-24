@@ -217,7 +217,7 @@ test.describe.serial('AsterDEX - Rocket Launch 页面', () => {
   // ========================================================
   // 测试 1：页面加载，标题与主要文案可见
   // ========================================================
-  test('Rocket Launch 页面可正常加载', async ({ loggedInPage: page }) => {
+  test('Rocket Launch 页面可正常加载', { tag: ['@P0'] }, async ({ loggedInPage: page }) => {
     const url = getRocketLaunchUrl();
     console.log(`[test] Rocket Launch URL: ${url}`);
 
@@ -252,7 +252,7 @@ test.describe.serial('AsterDEX - Rocket Launch 页面', () => {
   // ========================================================
   // 测试 2：Tab 切换 — 火箭发射 / Trade Arena
   // ========================================================
-  test('Tab 切换：火箭发射 / Trade Arena', async ({ loggedInPage: page }) => {
+  test('Tab 切换：火箭发射 / Trade Arena', { tag: ['@P0'] }, async ({ loggedInPage: page }) => {
     // 验证两个 Tab 都可见
     const rocketTab = page.locator('button:has-text("火箭发射"), button:text-is("火箭发射")').first();
     const arenaTab  = page.locator('button:has-text("Trade Arena"), button:text-is("Trade Arena")').first();
@@ -282,7 +282,7 @@ test.describe.serial('AsterDEX - Rocket Launch 页面', () => {
   // ========================================================
   // 测试 3：筛选按钮 — 全部 / 进行中 / 即将到来 / 已结束
   // ========================================================
-  test('筛选按钮切换正常', async ({ loggedInPage: page }) => {
+  test('筛选按钮切换正常', { tag: ['@P0'] }, async ({ loggedInPage: page }) => {
     const filters = ['全部', '进行中', '即将到来', '已结束'];
 
     for (const f of filters) {
@@ -311,7 +311,7 @@ test.describe.serial('AsterDEX - Rocket Launch 页面', () => {
   // ========================================================
   // 测试 4：项目卡片可见，"交易赚取"链接有效
   // ========================================================
-  test('项目卡片列表可见，交易赚取链接有效', async ({ loggedInPage: page }) => {
+  test('项目卡片列表可见，交易赚取链接有效', { tag: ['@P0'] }, async ({ loggedInPage: page }) => {
     // 进入"已结束"筛选（卡片数量最多）
     const endedBtn = page.locator('button:has-text("已结束")').first();
     if (await endedBtn.isVisible({ timeout: 3000 }).catch(() => false)) {
@@ -341,7 +341,7 @@ test.describe.serial('AsterDEX - Rocket Launch 页面', () => {
   // ========================================================
   // 测试 5：点击"交易赚取"进入 Spot 交易页
   // ========================================================
-  test('点击交易赚取进入 Spot 交易页', async ({ loggedInPage: page }) => {
+  test('点击交易赚取进入 Spot 交易页', { tag: ['@P0'] }, async ({ loggedInPage: page }) => {
     const endedBtn = page.locator('button:has-text("已结束")').first();
     if (await endedBtn.isVisible({ timeout: 3000 }).catch(() => false)) {
       await endedBtn.click();
@@ -384,7 +384,7 @@ test.describe.serial('AsterDEX - Rocket Launch 页面', () => {
   // ========================================================
   // 测试 6："查看更多"按钮可点击，加载更多卡片
   // ========================================================
-  test('"查看更多"加载更多项目', async ({ loggedInPage: page }) => {
+  test('"查看更多"加载更多项目', { tag: ['@P0'] }, async ({ loggedInPage: page }) => {
     // 先进入"已结束"
     const endedBtn = page.locator('button:has-text("已结束")').first();
     if (await endedBtn.isVisible({ timeout: 3000 }).catch(() => false)) {
@@ -415,7 +415,7 @@ test.describe.serial('AsterDEX - Rocket Launch 页面', () => {
   // ========================================================
   // 测试 7：FAQ 手风琴展开/收起
   // ========================================================
-  test('FAQ 手风琴展开与收起', async ({ loggedInPage: page }) => {
+  test('FAQ 手风琴展开与收起', { tag: ['@P0'] }, async ({ loggedInPage: page }) => {
     const faqs = [
       '什么是火箭发射？',
       '如何符合活动条件？',
@@ -448,7 +448,7 @@ test.describe.serial('AsterDEX - Rocket Launch 页面', () => {
   // ========================================================
   // 测试 8："了解更多"链接指向文档
   // ========================================================
-  test('"了解更多"链接指向文档', async ({ loggedInPage: page }) => {
+  test('"了解更多"链接指向文档', { tag: ['@P0'] }, async ({ loggedInPage: page }) => {
     const link = page.locator('a:has-text("了解更多")').first();
     const visible = await link.isVisible({ timeout: 5000 }).catch(() => false);
     console.log(`[test] "了解更多" 链接: ${visible ? '✅' : '⚠️'}`);
@@ -465,7 +465,7 @@ test.describe.serial('AsterDEX - Rocket Launch 页面', () => {
   // ========================================================
   // 测试 9：火箭发射 Tab - 已结束卡片数据验证
   // ========================================================
-  test('火箭发射 Tab - 已结束卡片：结束时间/最小持仓/交易赚取链接', async ({ loggedInPage: page }) => {
+  test('火箭发射 Tab - 已结束卡片：结束时间/最小持仓/交易赚取链接', { tag: ['@P0'] }, async ({ loggedInPage: page }) => {
     await checkEndedCards(page, '火箭发射');
   });
 
@@ -473,7 +473,7 @@ test.describe.serial('AsterDEX - Rocket Launch 页面', () => {
   // ========================================================
   // 测试 10：Trade Arena Tab - 已结束卡片数据验证
   // ========================================================
-  test('Trade Arena Tab - 已结束卡片：结束时间/最小持仓/交易赚取链接', async ({ loggedInPage: page }) => {
+  test('Trade Arena Tab - 已结束卡片：结束时间/最小持仓/交易赚取链接', { tag: ['@P0'] }, async ({ loggedInPage: page }) => {
     await checkEndedCards(page, 'Trade Arena');
   });
 
