@@ -180,7 +180,21 @@ test.describe.serial('AsterDEX - 期货页面检查', () => {
   // 测试 4：下单面板
   // ========================================================
   test('下单面板', async ({ loggedInPage: page }) => {
-    // 复用已打开的页面
+    // 确保页面在期货交易页（全量跑时 worker 可能复用了其他 spec 的导航）
+    await page.goto(process.env.EXCHANGE_URL!);
+    await page.waitForLoadState('domcontentloaded');
+    await page.waitForTimeout(1000);
+
+    // 清除可能由前序测试写入的订单类型偏好（localStorage 跨 goto 保留）
+    await page.evaluate(() => {
+      const keys = Object.keys(localStorage).filter(k =>
+        /order|type|tab|trade/i.test(k)
+      );
+      keys.forEach(k => localStorage.removeItem(k));
+    });
+    await page.reload();
+    await page.waitForLoadState('domcontentloaded');
+    await page.waitForTimeout(2000);
 
     // 订单类型 Tab：限价 / 市价（button 形式）
     const orderTypeTabs = ['限价', '市价'];
