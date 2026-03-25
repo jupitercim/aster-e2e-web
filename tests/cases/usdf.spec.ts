@@ -12,7 +12,7 @@ test.describe.serial('AsterDEX - USDF 稳定币', () => {
   // ========================================================
   // 测试 1：USDF 页面正常加载，显示铸造/兑换 Tab 及统计数据
   // ========================================================
-  test('USDF 页面正常加载', { tag: ['@P0'] }, async ({ loggedInPage: page }) => {
+  test('USDF 页面正常加载', { tag: ['@P0', '@PROD'] }, async ({ loggedInPage: page }) => {
     const url = getUsdfUrl();
     console.log(`[test] USDF URL: ${url}`);
 
@@ -57,7 +57,7 @@ test.describe.serial('AsterDEX - USDF 稳定币', () => {
   // ========================================================
   // 测试 2：铸造 / 兑换 Tab 切换
   // ========================================================
-  test('铸造与兑换 Tab 切换正常', { tag: ['@P0'] }, async ({ loggedInPage: page }) => {
+  test('铸造与兑换 Tab 切换正常', { tag: ['@P0', '@PROD'] }, async ({ loggedInPage: page }) => {
     // 复用 test 1 已打开的页面，无需重新导航
 
     // 点击「兑换」Tab
@@ -97,7 +97,7 @@ test.describe.serial('AsterDEX - USDF 稳定币', () => {
   // ========================================================
   // 测试 3：FAQ 折叠展开
   // ========================================================
-  test('FAQ 折叠展开功能正常', { tag: ['@P0'] }, async ({ loggedInPage: page }) => {
+  test('FAQ 折叠展开功能正常', { tag: ['@P0', '@PROD'] }, async ({ loggedInPage: page }) => {
     // 复用 test 2 已打开的页面，无需重新导航
 
     const faqKeywords = ['什么是USDF', 'USDF是什么', '常见问题', 'FAQ', '什么是智能铸造'];

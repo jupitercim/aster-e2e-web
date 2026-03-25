@@ -1,7 +1,7 @@
 // spec: specs/diagnostic.plan.md
 import { test } from '../fixtures/auth';
 
-test('DOM diagnostic - bottom panel', { tag: ['@P0'] }, async ({ loggedInPage: page }) => {
+test('DOM diagnostic - bottom panel', { tag: ['@P0', '@PROD'] }, async ({ loggedInPage: page }) => {
   await page.goto(process.env.EXCHANGE_URL!);
   await page.waitForLoadState('domcontentloaded');
   await page.waitForTimeout(3000);

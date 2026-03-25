@@ -29,7 +29,7 @@ test.describe.serial('AsterDEX - More Products（资源）页面', () => {
   // ========================================================
   // 测试 1：顶部"更多"下拉框可打开，右侧"资源"区域可见
   // ========================================================
-  test('顶部"更多"按钮下拉框可打开，资源区域可见', { tag: ['@P0'] }, async ({ loggedInPage: page }) => {
+  test('顶部"更多"按钮下拉框可打开，资源区域可见', { tag: ['@P0', '@PROD'] }, async ({ loggedInPage: page }) => {
     await page.goto(getBaseUrl());
     await page.waitForLoadState('domcontentloaded');
     await page.waitForTimeout(3000);
@@ -65,7 +65,7 @@ test.describe.serial('AsterDEX - More Products（资源）页面', () => {
   // ========================================================
   // 测试 2：验证"资源"区域下所有链接均可见
   // ========================================================
-  test('资源区域下所有产品链接可见', { tag: ['@P0'] }, async ({ loggedInPage: page }) => {
+  test('资源区域下所有产品链接可见', { tag: ['@P0', '@PROD'] }, async ({ loggedInPage: page }) => {
     const opened = await openMoreDropdown(page);
     if (!opened) {
       console.log('[test] ⚠️ 未找到"更多"按钮，跳过');
@@ -110,7 +110,7 @@ test.describe.serial('AsterDEX - More Products（资源）页面', () => {
   // ========================================================
   // 测试 3：所有链接的 href 有效（非空、非 # ）
   // ========================================================
-  test('资源区域所有链接 href 有效', { tag: ['@P0'] }, async ({ loggedInPage: page }) => {
+  test('资源区域所有链接 href 有效', { tag: ['@P0', '@PROD'] }, async ({ loggedInPage: page }) => {
     const opened = await openMoreDropdown(page);
     if (!opened) {
       console.log('[test] ⚠️ 未找到"更多"按钮，跳过');
@@ -150,7 +150,7 @@ test.describe.serial('AsterDEX - More Products（资源）页面', () => {
   // ========================================================
   // 测试 4：点击"资源"区域中第一个链接，页面正常跳转
   // ========================================================
-  test('点击资源链接后页面正常跳转，无 404/500', { tag: ['@P0'] }, async ({ loggedInPage: page }) => {
+  test('点击资源链接后页面正常跳转，无 404/500', { tag: ['@P0', '@PROD'] }, async ({ loggedInPage: page }) => {
     const opened = await openMoreDropdown(page);
     if (!opened) {
       console.log('[test] ⚠️ 未找到"更多"按钮，跳过');

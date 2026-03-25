@@ -95,7 +95,7 @@ test.describe.serial('AsterDEX - More Resources 页面', () => {
   // ========================================================
   // 测试 1：More Resources 导航入口可见并可交互
   // ========================================================
-  test('More Resources 导航入口可见并可交互', { tag: ['@P0'] }, async ({ loggedInPage: page }) => {
+  test('More Resources 导航入口可见并可交互', { tag: ['@P0', '@PROD'] }, async ({ loggedInPage: page }) => {
     await page.goto(getBaseUrl());
     await page.waitForLoadState('domcontentloaded');
     await page.waitForTimeout(3000);
@@ -128,7 +128,7 @@ test.describe.serial('AsterDEX - More Resources 页面', () => {
   // ========================================================
   // 测试 2：验证资源下拉菜单内容项正常显示
   // ========================================================
-  test('验证资源下拉菜单内容项正常显示', { tag: ['@P0'] }, async ({ loggedInPage: page }) => {
+  test('验证资源下拉菜单内容项正常显示', { tag: ['@P0', '@PROD'] }, async ({ loggedInPage: page }) => {
     await openResourcesMenu(page);
 
     const resourceKeywords = [
@@ -165,7 +165,7 @@ test.describe.serial('AsterDEX - More Resources 页面', () => {
   // ========================================================
   // 测试 3：点击帮助/文档链接，验证可跳转或新标签页打开
   // ========================================================
-  test('点击帮助或文档链接', { tag: ['@P0'] }, async ({ loggedInPage: page }) => {
+  test('点击帮助或文档链接', { tag: ['@P0', '@PROD'] }, async ({ loggedInPage: page }) => {
     await page.goto(getBaseUrl());
     await page.waitForLoadState('domcontentloaded');
     await page.waitForTimeout(2000);
@@ -211,7 +211,7 @@ test.describe.serial('AsterDEX - More Resources 页面', () => {
   // ========================================================
   // 测试 4：验证公告或博客入口可用
   // ========================================================
-  test('验证公告或博客入口可用', { tag: ['@P0'] }, async ({ loggedInPage: page }) => {
+  test('验证公告或博客入口可用', { tag: ['@P0', '@PROD'] }, async ({ loggedInPage: page }) => {
     await page.goto(getBaseUrl());
     await page.waitForLoadState('domcontentloaded');
     await page.waitForTimeout(2000);
@@ -260,7 +260,7 @@ test.describe.serial('AsterDEX - More Resources 页面', () => {
   // ========================================================
   // 测试 5：验证 API 文档入口可用
   // ========================================================
-  test('验证 API 文档入口可用', { tag: ['@P0'] }, async ({ loggedInPage: page }) => {
+  test('验证 API 文档入口可用', { tag: ['@P0', '@PROD'] }, async ({ loggedInPage: page }) => {
     await page.goto(getBaseUrl());
     await page.waitForLoadState('domcontentloaded');
     await page.waitForTimeout(2000);
@@ -317,7 +317,7 @@ test.describe.serial('AsterDEX - More Resources 页面', () => {
   // ========================================================
   // 测试 6：验证社交媒体链接（Twitter / Discord / Telegram）
   // ========================================================
-  test('验证社交媒体链接可用', { tag: ['@P0'] }, async ({ loggedInPage: page }) => {
+  test('验证社交媒体链接可用', { tag: ['@P0', '@PROD'] }, async ({ loggedInPage: page }) => {
     await page.goto(getBaseUrl());
     await page.waitForLoadState('domcontentloaded');
     await page.waitForTimeout(2000);
@@ -355,7 +355,7 @@ test.describe.serial('AsterDEX - More Resources 页面', () => {
   // ========================================================
   // 测试 7：验证下拉菜单中所有链接均有有效 href
   // ========================================================
-  test('验证菜单中所有链接均有有效 href', { tag: ['@P0'] }, async ({ loggedInPage: page }) => {
+  test('验证菜单中所有链接均有有效 href', { tag: ['@P0', '@PROD'] }, async ({ loggedInPage: page }) => {
     await page.goto(getBaseUrl());
     await page.waitForLoadState('domcontentloaded');
     await page.waitForTimeout(2000);
@@ -420,7 +420,7 @@ test.describe.serial('AsterDEX - More Resources 页面', () => {
   // ========================================================
   // 测试 8：验证菜单点击后不出现 404 / 500 错误页
   // ========================================================
-  test('验证资源链接点击后不出现错误页', { tag: ['@P0'] }, async ({ loggedInPage: page }) => {
+  test('验证资源链接点击后不出现错误页', { tag: ['@P0', '@PROD'] }, async ({ loggedInPage: page }) => {
     await page.goto(getBaseUrl());
     await page.waitForLoadState('domcontentloaded');
     await page.waitForTimeout(2000);
@@ -479,7 +479,7 @@ test.describe.serial('AsterDEX - More Resources 页面', () => {
   // ========================================================
   // 测试 9：验证菜单在不同页面（行情页）下仍可正常展开
   // ========================================================
-  test('在行情页面下 More Resources 菜单仍可展开', { tag: ['@P0'] }, async ({ loggedInPage: page }) => {
+  test('在行情页面下 More Resources 菜单仍可展开', { tag: ['@P0', '@PROD'] }, async ({ loggedInPage: page }) => {
     const origin = new URL(process.env.EXCHANGE_URL || '').origin;
     // 尝试跳转到行情页或合约页
     const altUrls = [
@@ -536,7 +536,7 @@ test.describe.serial('AsterDEX - More Resources 页面', () => {
   // ========================================================
   // 测试 10：验证下拉菜单 Escape 键可关闭
   // ========================================================
-  test('Escape 键可关闭 More Resources 下拉菜单', { tag: ['@P0'] }, async ({ loggedInPage: page }) => {
+  test('Escape 键可关闭 More Resources 下拉菜单', { tag: ['@P0', '@PROD'] }, async ({ loggedInPage: page }) => {
     await page.goto(getBaseUrl());
     await page.waitForLoadState('domcontentloaded');
     await page.waitForTimeout(2000);
@@ -591,7 +591,7 @@ test.describe.serial('AsterDEX - More Resources 页面', () => {
   // ========================================================
   // 测试 11：验证点击页面空白区域可关闭下拉菜单
   // ========================================================
-  test('点击空白区域可关闭下拉菜单', { tag: ['@P0'] }, async ({ loggedInPage: page }) => {
+  test('点击空白区域可关闭下拉菜单', { tag: ['@P0', '@PROD'] }, async ({ loggedInPage: page }) => {
     await page.goto(getBaseUrl());
     await page.waitForLoadState('domcontentloaded');
     await page.waitForTimeout(2000);
@@ -645,7 +645,7 @@ test.describe.serial('AsterDEX - More Resources 页面', () => {
   // ========================================================
   // 测试 12：验证 More Resources 下资源链接数量合理
   // ========================================================
-  test('验证 More Resources 菜单项数量合理', { tag: ['@P0'] }, async ({ loggedInPage: page }) => {
+  test('验证 More Resources 菜单项数量合理', { tag: ['@P0', '@PROD'] }, async ({ loggedInPage: page }) => {
     await page.goto(getBaseUrl());
     await page.waitForLoadState('domcontentloaded');
     await page.waitForTimeout(2000);
@@ -719,7 +719,7 @@ test.describe.serial('AsterDEX - Market Data 市场数据', () => {
   // ========================================================
   // MD-1：Real-Time Funding Rate — 页面结构与列头
   // ========================================================
-  test('[Funding Rate] 页面加载、列头与数据行验证', { tag: ['@P0'] }, async ({ loggedInPage: page }) => {
+  test('[Funding Rate] 页面加载、列头与数据行验证', { tag: ['@P0', '@PROD'] }, async ({ loggedInPage: page }) => {
     await page.goto(FUNDING_RATE_URL());
     await page.waitForLoadState('domcontentloaded');
     await page.waitForTimeout(3000);
@@ -773,7 +773,7 @@ test.describe.serial('AsterDEX - Market Data 市场数据', () => {
   // ========================================================
   // MD-2：Funding Rate History — 控件、图表与表格数据
   // ========================================================
-  test('[Funding History] BTCUSDT 选择器、时间范围、表格数据行验证', { tag: ['@P0'] }, async ({ loggedInPage: page }) => {
+  test('[Funding History] BTCUSDT 选择器、时间范围、表格数据行验证', { tag: ['@P0', '@PROD'] }, async ({ loggedInPage: page }) => {
     await page.goto(FUNDING_HISTORY_URL());
     await page.waitForLoadState('domcontentloaded');
     await page.waitForTimeout(3000);
@@ -845,7 +845,7 @@ test.describe.serial('AsterDEX - Market Data 市场数据', () => {
   // ========================================================
   // MD-3：Index — 下拉选择器、时间轴按钮、图表
   // ========================================================
-  test('[Index] Premium Index 下拉、BTCUSDT 选择器、K线时间轴验证', { tag: ['@P0'] }, async ({ loggedInPage: page }) => {
+  test('[Index] Premium Index 下拉、BTCUSDT 选择器、K线时间轴验证', { tag: ['@P0', '@PROD'] }, async ({ loggedInPage: page }) => {
     await page.goto(INDEX_URL());
     await page.waitForLoadState('domcontentloaded');
     await page.waitForTimeout(3000);
@@ -899,7 +899,7 @@ test.describe.serial('AsterDEX - Market Data 市场数据', () => {
   // ========================================================
   // MD-4：Funding Fee Comparison — 列头、数据行、Tab、搜索、分页
   // ========================================================
-  test('[Fee Comparison] 列头、BTCUSDT 数据行、All/Favorite Tab、搜索、分页验证', { tag: ['@P0'] }, async ({ loggedInPage: page }) => {
+  test('[Fee Comparison] 列头、BTCUSDT 数据行、All/Favorite Tab、搜索、分页验证', { tag: ['@P0', '@PROD'] }, async ({ loggedInPage: page }) => {
     await page.goto(FEE_COMPARISON_URL());
     await page.waitForLoadState('domcontentloaded');
     await page.waitForTimeout(3000);
@@ -980,7 +980,7 @@ test.describe.serial('AsterDEX - Market Data 市场数据', () => {
   // ========================================================
   // MD-5：四个子页面均无 404 / 500 错误
   // ========================================================
-  test('[Market Data] 四个子页面均无 404 / 500 错误', { tag: ['@P0'] }, async ({ loggedInPage: page }) => {
+  test('[Market Data] 四个子页面均无 404 / 500 错误', { tag: ['@P0', '@PROD'] }, async ({ loggedInPage: page }) => {
     const pages = [
       { name: 'Real-Time Funding Rate', url: FUNDING_RATE_URL() },
       { name: 'Funding Rate History',   url: FUNDING_HISTORY_URL() },
@@ -1009,7 +1009,7 @@ test.describe.serial('AsterDEX - Market Data 市场数据', () => {
   // ========================================================
   // Trading Rules - 1：交易规则 Tab — 数值验证 + 翻页 + 搜索
   // ========================================================
-  test('[Trading Rules] 交易规则Tab数值正常、可翻页、搜索ASTE显示ASTERUSDT', { tag: ['@P0'] }, async ({ loggedInPage: page }) => {
+  test('[Trading Rules] 交易规则Tab数值正常、可翻页、搜索ASTE显示ASTERUSDT', { tag: ['@P0', '@PROD'] }, async ({ loggedInPage: page }) => {
     const TRADING_RULES_URL = `${getOrigin()}/zh-CN/futures/trading-rules/trading-rules`;
     await page.goto(TRADING_RULES_URL);
     await page.waitForLoadState('domcontentloaded');
@@ -1085,7 +1085,7 @@ test.describe.serial('AsterDEX - Market Data 市场数据', () => {
   // ========================================================
   // Trading Rules - 2：多资产信息 — 底部关键标签存在
   // ========================================================
-  test('[Trading Rules] 多资产信息底部包含联合保证金/自动兑换/多资产汇率', { tag: ['@P0'] }, async ({ loggedInPage: page }) => {
+  test('[Trading Rules] 多资产信息底部包含联合保证金/自动兑换/多资产汇率', { tag: ['@P0', '@PROD'] }, async ({ loggedInPage: page }) => {
     // 多资产信息是独立子页面
     await page.goto(`${getOrigin()}/zh-CN/futures/trading-rules/multi-assets-info`);
     await page.waitForLoadState('domcontentloaded');
@@ -1113,7 +1113,7 @@ test.describe.serial('AsterDEX - Market Data 市场数据', () => {
   // ========================================================
   // Trading Rules - 3：杠杆与限额 — 搜索 eth 显示 ETHUSD1 & ETHUSDT
   // ========================================================
-  test('[Trading Rules] 杠杆与限额搜索ETH显示ETHUSD1和ETHUSDT', { tag: ['@P0'] }, async ({ loggedInPage: page }) => {
+  test('[Trading Rules] 杠杆与限额搜索ETH显示ETHUSD1和ETHUSDT', { tag: ['@P0', '@PROD'] }, async ({ loggedInPage: page }) => {
     await page.goto(`${getOrigin()}/zh-CN/futures/trading-rules/leverage-and-limit`);
     await page.waitForLoadState('domcontentloaded');
     await page.waitForTimeout(2000);
@@ -1159,7 +1159,7 @@ test.describe.serial('AsterDEX - Market Data 市场数据', () => {
   // ========================================================
   // Trading Rules - 4：杠杆与保证金 Tab 可见
   // ========================================================
-  test('[Trading Rules] 杠杆与保证金Tab可打开', { tag: ['@P0'] }, async ({ loggedInPage: page }) => {
+  test('[Trading Rules] 杠杆与保证金Tab可打开', { tag: ['@P0', '@PROD'] }, async ({ loggedInPage: page }) => {
     await page.goto(`${getOrigin()}/zh-CN/futures/trading-rules/leverage-and-margin`);
     await page.waitForLoadState('domcontentloaded');
     await page.waitForTimeout(2000);

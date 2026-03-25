@@ -12,7 +12,7 @@ test.describe.serial('AsterDEX - Settings 设置页面', () => {
   // ========================================================
   // 测试 1：Settings 页面可正常加载
   // ========================================================
-  test('Settings 页面可正常加载', { tag: ['@P0'] }, async ({ loggedInPage: page }) => {
+  test('Settings 页面可正常加载', { tag: ['@P0', '@PROD'] }, async ({ loggedInPage: page }) => {
     const url = getSettingsUrl();
     console.log(`[test] Settings URL: ${url}`);
 
@@ -45,7 +45,7 @@ test.describe.serial('AsterDEX - Settings 设置页面', () => {
   // ========================================================
   // 测试 2：验证设置选项正常显示
   // ========================================================
-  test('验证设置选项正常显示', { tag: ['@P0'] }, async ({ loggedInPage: page }) => {
+  test('验证设置选项正常显示', { tag: ['@P0', '@PROD'] }, async ({ loggedInPage: page }) => {
     const settingKeywords = ['设置', 'Settings', '语言', 'Language', '通知', 'Notifications',
       '主题', 'Theme', '安全', 'Security', '偏好', 'Preferences'];
     let found = false;
@@ -73,7 +73,7 @@ test.describe.serial('AsterDEX - Settings 设置页面', () => {
   // ========================================================
   // 测试 3：验证语言切换功能可用
   // ========================================================
-  test('验证语言切换功能可用', { tag: ['@P0'] }, async ({ loggedInPage: page }) => {
+  test('验证语言切换功能可用', { tag: ['@P0', '@PROD'] }, async ({ loggedInPage: page }) => {
     const langKeywords = ['语言', 'Language', '中文', 'English', 'lang', 'locale'];
     let langEl = null;
 
@@ -120,7 +120,7 @@ test.describe.serial('AsterDEX - Settings 设置页面', () => {
   // ========================================================
   // 测试 4：验证主题切换（暗黑/明亮模式）
   // ========================================================
-  test('验证主题切换（暗黑/明亮模式）', { tag: ['@P0'] }, async ({ loggedInPage: page }) => {
+  test('验证主题切换（暗黑/明亮模式）', { tag: ['@P0', '@PROD'] }, async ({ loggedInPage: page }) => {
     const themeKeywords = ['主题', 'Theme', '暗黑', 'Dark', '明亮', 'Light', '夜间', '日间', 'Night', 'Day'];
     let themeEl = null;
 
@@ -165,7 +165,7 @@ test.describe.serial('AsterDEX - Settings 设置页面', () => {
   // ========================================================
   // 测试 5：验证通知设置可用
   // ========================================================
-  test('验证通知设置可用', { tag: ['@P0'] }, async ({ loggedInPage: page }) => {
+  test('验证通知设置可用', { tag: ['@P0', '@PROD'] }, async ({ loggedInPage: page }) => {
     const notifKeywords = ['通知', 'Notifications', '推送', 'Push', '邮件', 'Email'];
     let notifEl = null;
 

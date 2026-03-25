@@ -12,7 +12,7 @@ test.describe.serial('AsterDEX - Aster Code（Builder 中心）', () => {
   // ========================================================
   // 测试 1：Aster Code 页面正常加载，显示 Builder 入口
   // ========================================================
-  test('Aster Code 页面正常加载', { tag: ['@P0'] }, async ({ loggedInPage: page }) => {
+  test('Aster Code 页面正常加载', { tag: ['@P0', '@PROD'] }, async ({ loggedInPage: page }) => {
     const url = getAsterCodeUrl();
     console.log(`[test] Aster Code URL: ${url}`);
 
@@ -54,7 +54,7 @@ test.describe.serial('AsterDEX - Aster Code（Builder 中心）', () => {
   // ========================================================
   // 测试 2：「成为 Builder」按钮可点击，触发交互
   // ========================================================
-  test('成为 Builder 按钮可点击', { tag: ['@P0'] }, async ({ loggedInPage: page }) => {
+  test('成为 Builder 按钮可点击', { tag: ['@P0', '@PROD'] }, async ({ loggedInPage: page }) => {
     // 复用 test 1 已打开的页面，无需重新导航
 
     const builderBtn = page.locator('a:has-text("成为 Builder"), button:has-text("成为 Builder")').first();

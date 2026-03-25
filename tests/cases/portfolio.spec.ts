@@ -12,7 +12,7 @@ test.describe.serial('AsterDEX - Portfolio 页面', () => {
   // ========================================================
   // 测试 1：Portfolio 页面可正常加载
   // ========================================================
-  test('Portfolio 页面可正常加载', { tag: ['@P0'] }, async ({ loggedInPage: page }) => {
+  test('Portfolio 页面可正常加载', { tag: ['@P0', '@PROD'] }, async ({ loggedInPage: page }) => {
     const url = getPortfolioUrl();
     console.log(`[test] Portfolio URL: ${url}`);
 
@@ -32,7 +32,7 @@ test.describe.serial('AsterDEX - Portfolio 页面', () => {
   // ========================================================
   // 测试 2：验证资产概览数据显示
   // ========================================================
-  test('验证资产概览数据正常显示', { tag: ['@P0'] }, async ({ loggedInPage: page }) => {
+  test('验证资产概览数据正常显示', { tag: ['@P0', '@PROD'] }, async ({ loggedInPage: page }) => {
     // 复用 test 1 已打开的页面，无需重新导航
 
     // 查找总资产/账户余额相关元素
@@ -64,7 +64,7 @@ test.describe.serial('AsterDEX - Portfolio 页面', () => {
   // ========================================================
   // 测试 3：切换不同资产 Tab
   // ========================================================
-  test('切换资产 Tab 页', { tag: ['@P0'] }, async ({ loggedInPage: page }) => {
+  test('切换资产 Tab 页', { tag: ['@P0', '@PROD'] }, async ({ loggedInPage: page }) => {
     // 复用 test 2 已打开的页面，无需重新导航
 
     const tabNames = ['期货', '现货', 'Futures', 'Spot', '资金账户', '统计'];
@@ -92,7 +92,7 @@ test.describe.serial('AsterDEX - Portfolio 页面', () => {
   // ========================================================
   // 测试 4：验证总资产数值显示（非空、非 NaN）
   // ========================================================
-  test('总资产 USDT 数值显示正常（非空非NaN）', { tag: ['@P0'] }, async ({ loggedInPage: page }) => {
+  test('总资产 USDT 数值显示正常（非空非NaN）', { tag: ['@P0', '@PROD'] }, async ({ loggedInPage: page }) => {
     // 复用 test 3 已打开的页面，无需重新导航
 
     // 查找总资产数值（通常是一个较大数字 + USDT 单位）

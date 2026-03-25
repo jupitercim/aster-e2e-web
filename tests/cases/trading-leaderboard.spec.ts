@@ -12,7 +12,7 @@ test.describe.serial('AsterDEX - 交易排行榜', () => {
   // ========================================================
   // 测试 1：排行榜页面正常加载
   // ========================================================
-  test('排行榜页面正常加载，列表数据可见', { tag: ['@P0'] }, async ({ loggedInPage: page }) => {
+  test('排行榜页面正常加载，列表数据可见', { tag: ['@P0', '@PROD'] }, async ({ loggedInPage: page }) => {
     const url = getLeaderboardUrl();
     console.log(`[test] 排行榜 URL: ${url}`);
 
@@ -45,7 +45,7 @@ test.describe.serial('AsterDEX - 交易排行榜', () => {
   // ========================================================
   // 测试 2：切换周期（日 / 周 / 月）
   // ========================================================
-  test('周期切换（日/周/月）正常', { tag: ['@P0'] }, async ({ loggedInPage: page }) => {
+  test('周期切换（日/周/月）正常', { tag: ['@P0', '@PROD'] }, async ({ loggedInPage: page }) => {
     // 复用 test 1 已打开的页面，无需重新导航
 
     const periodOptions = ['日', '周', '月', 'Daily', 'Weekly', 'Monthly'];
@@ -76,7 +76,7 @@ test.describe.serial('AsterDEX - 交易排行榜', () => {
   // ========================================================
   // 测试 3：切换多空榜（如有）
   // ========================================================
-  test('多空方向榜切换（如有）', { tag: ['@P0'] }, async ({ loggedInPage: page }) => {
+  test('多空方向榜切换（如有）', { tag: ['@P0', '@PROD'] }, async ({ loggedInPage: page }) => {
     // 复用 test 2 已打开的页面，无需重新导航
 
     const directionOptions = ['多头', '空头', 'Long', 'Short', '做多', '做空'];

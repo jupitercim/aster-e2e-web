@@ -8,7 +8,7 @@ test.describe.serial('AsterDEX - 现货页面检查', () => {
   // ========================================================
   // 测试 1：页面加载与基础布局
   // ========================================================
-  test('页面加载与基础布局', { tag: ['@P0'] }, async ({ loggedInPage: page }) => {
+  test('页面加载与基础布局', { tag: ['@P0', '@PROD'] }, async ({ loggedInPage: page }) => {
     // 1. 导航至现货页面，等待 domcontentloaded 后再等待 3 秒
     const base = process.env.EXCHANGE_URL!;
     const spotUrl = `${new URL(base).origin}/zh-CN/trade/pro/spot/BTCUSDT`;
@@ -42,7 +42,7 @@ test.describe.serial('AsterDEX - 现货页面检查', () => {
   // ========================================================
   // 测试 2：顶部行情栏数据
   // ========================================================
-  test('顶部行情栏数据', { tag: ['@P0'] }, async ({ loggedInPage: page }) => {
+  test('顶部行情栏数据', { tag: ['@P0', '@PROD'] }, async ({ loggedInPage: page }) => {
     // 复用 test 1 已打开的页面
 
     // 1. 查找交易对标题，确认显示 BTC/USDT 或 现货 标识
@@ -115,7 +115,7 @@ test.describe.serial('AsterDEX - 现货页面检查', () => {
   // ========================================================
   // 测试 3：图表区域
   // ========================================================
-  test('图表区域', { tag: ['@P0'] }, async ({ loggedInPage: page }) => {
+  test('图表区域', { tag: ['@P0', '@PROD'] }, async ({ loggedInPage: page }) => {
     // 复用已打开的页面
 
     // 1. 等待 2 秒，查找 TradingView iframe（宽>200, 高>150）
@@ -173,7 +173,7 @@ test.describe.serial('AsterDEX - 现货页面检查', () => {
   // ========================================================
   // 测试 4：下单面板
   // ========================================================
-  test('下单面板', { tag: ['@P0'] }, async ({ loggedInPage: page }) => {
+  test('下单面板', { tag: ['@P0', '@PROD'] }, async ({ loggedInPage: page }) => {
     // 复用已打开的页面
 
     // 1. 验证订单类型 Tab：市价、限价 均可见（expect.soft）
@@ -264,7 +264,7 @@ test.describe.serial('AsterDEX - 现货页面检查', () => {
   // ========================================================
   // 测试 5：订单簿
   // ========================================================
-  test('订单簿', { tag: ['@P0'] }, async ({ loggedInPage: page }) => {
+  test('订单簿', { tag: ['@P0', '@PROD'] }, async ({ loggedInPage: page }) => {
     // 复用已打开的页面
 
     // 1. 点击 订单簿 Tab（若存在），等待 500ms
@@ -327,7 +327,7 @@ test.describe.serial('AsterDEX - 现货页面检查', () => {
   // ========================================================
   // 测试 6：最新成交
   // ========================================================
-  test('最新成交', { tag: ['@P0'] }, async ({ loggedInPage: page }) => {
+  test('最新成交', { tag: ['@P0', '@PROD'] }, async ({ loggedInPage: page }) => {
     // 复用已打开的页面
 
     // 1. 点击 最新成交 Tab，等待 500ms
@@ -369,7 +369,7 @@ test.describe.serial('AsterDEX - 现货页面检查', () => {
   // ========================================================
   // 测试 7：底部面板 Tabs
   // ========================================================
-  test('底部面板 Tabs', { tag: ['@P0'] }, async ({ loggedInPage: page }) => {
+  test('底部面板 Tabs', { tag: ['@P0', '@PROD'] }, async ({ loggedInPage: page }) => {
     // 复用已打开的页面
 
     // 1. 依次点击：当前委托、仓位、资产、历史委托，每次等待 1 秒
@@ -432,7 +432,7 @@ test.describe.serial('AsterDEX - 现货页面检查', () => {
   // ========================================================
   // 测试 8：全页截图
   // ========================================================
-  test('全页截图', { tag: ['@P0'] }, async ({ loggedInPage: page }) => {
+  test('全页截图', { tag: ['@P0', '@PROD'] }, async ({ loggedInPage: page }) => {
     // 1. 滚动回顶部，等待 500ms
     await page.evaluate(() => window.scrollTo(0, 0));
     await page.waitForTimeout(500);

@@ -12,7 +12,7 @@ test.describe.serial('AsterDEX - Rewards 页面', () => {
   // ========================================================
   // 测试 1：Rewards 页面可正常加载
   // ========================================================
-  test('Rewards 页面可正常加载', { tag: ['@P0'] }, async ({ loggedInPage: page }) => {
+  test('Rewards 页面可正常加载', { tag: ['@P0', '@PROD'] }, async ({ loggedInPage: page }) => {
     const url = getRewardsUrl();
     console.log(`[test] Rewards URL: ${url}`);
 
@@ -32,7 +32,7 @@ test.describe.serial('AsterDEX - Rewards 页面', () => {
   // ========================================================
   // 测试 2：验证奖励内容显示
   // ========================================================
-  test('验证奖励内容正常显示', { tag: ['@P0'] }, async ({ loggedInPage: page }) => {
+  test('验证奖励内容正常显示', { tag: ['@P0', '@PROD'] }, async ({ loggedInPage: page }) => {
     // 复用 test 1 已打开的页面，无需重新导航
 
     const rewardKeywords = ['奖励', 'Rewards', '积分', 'Points', '领取', 'Claim', '排行榜', 'Leaderboard'];
@@ -62,7 +62,7 @@ test.describe.serial('AsterDEX - Rewards 页面', () => {
   // ========================================================
   // 测试 3：查看任务列表（如有）
   // ========================================================
-  test('查看任务或活动列表', { tag: ['@P0'] }, async ({ loggedInPage: page }) => {
+  test('查看任务或活动列表', { tag: ['@P0', '@PROD'] }, async ({ loggedInPage: page }) => {
     // 复用 test 2 已打开的页面，无需重新导航
 
     const taskKeywords = ['任务', 'Task', '活动', 'Activity', '每日', 'Daily'];
@@ -88,7 +88,7 @@ test.describe.serial('AsterDEX - Rewards 页面', () => {
   // ========================================================
   // 测试 4：积分排行榜列表数据可加载
   // ========================================================
-  test('积分排行榜列表可见', { tag: ['@P0'] }, async ({ loggedInPage: page }) => {
+  test('积分排行榜列表可见', { tag: ['@P0', '@PROD'] }, async ({ loggedInPage: page }) => {
     // 复用 test 3 已打开的页面，无需重新导航
 
     // 找到排行榜入口（Tab 或链接）
@@ -137,7 +137,7 @@ test.describe.serial('AsterDEX - Rewards 页面', () => {
   // ========================================================
   // 测试 5：交易挖矿规则说明展开
   // ========================================================
-  test('交易挖矿规则说明可展开', { tag: ['@P0'] }, async ({ loggedInPage: page }) => {
+  test('交易挖矿规则说明可展开', { tag: ['@P0', '@PROD'] }, async ({ loggedInPage: page }) => {
     // 复用 test 4 已打开的页面，无需重新导航
 
     // 重新导航到 trade-and-earn 确保在正确页面

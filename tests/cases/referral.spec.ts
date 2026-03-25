@@ -12,7 +12,7 @@ test.describe.serial('AsterDEX - 推荐（Referral）', () => {
   // ========================================================
   // 测试 1：推荐页面正常加载
   // ========================================================
-  test('推荐页面正常加载', { tag: ['@P0'] }, async ({ loggedInPage: page }) => {
+  test('推荐页面正常加载', { tag: ['@P0', '@PROD'] }, async ({ loggedInPage: page }) => {
     const url = getReferralUrl();
     console.log(`[test] Referral URL: ${url}`);
 
@@ -45,7 +45,7 @@ test.describe.serial('AsterDEX - 推荐（Referral）', () => {
   // ========================================================
   // 测试 2：复制推荐链接
   // ========================================================
-  test('复制推荐链接，显示复制成功提示', { tag: ['@P0'] }, async ({ loggedInPage: page }) => {
+  test('复制推荐链接，显示复制成功提示', { tag: ['@P0', '@PROD'] }, async ({ loggedInPage: page }) => {
     // 复用 test 1 已打开的页面，无需重新导航
 
     // 找到复制按钮（「复制链接」/ 「Copy」/ 复制图标）
@@ -105,7 +105,7 @@ test.describe.serial('AsterDEX - 推荐（Referral）', () => {
   // ========================================================
   // 测试 3：查看推荐收益统计数据
   // ========================================================
-  test('推荐收益统计数据区域可见', { tag: ['@P0'] }, async ({ loggedInPage: page }) => {
+  test('推荐收益统计数据区域可见', { tag: ['@P0', '@PROD'] }, async ({ loggedInPage: page }) => {
     // 复用 test 2 已打开的页面，无需重新导航
 
     // 验证统计数据区域（邀请人数 / 佣金 / 收益）

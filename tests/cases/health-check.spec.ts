@@ -12,7 +12,7 @@ test.describe.serial('AsterDEX - 系统健康检查', () => {
   // ========================================================
   // 测试 1：主页可正常加载
   // ========================================================
-  test('主页可正常加载', { tag: ['@P0'] }, async ({ extensionContext }) => {
+  test('主页可正常加载', { tag: ['@P0', '@PROD'] }, async ({ extensionContext }) => {
     const page = await extensionContext.newPage();
     const origin = getBaseOrigin();
     await page.goto(`${origin}/zh-CN`);
@@ -41,7 +41,7 @@ test.describe.serial('AsterDEX - 系统健康检查', () => {
   // ========================================================
   // 测试 2：合约交易页可正常加载
   // ========================================================
-  test('合约交易页可正常加载', { tag: ['@P0'] }, async ({ extensionContext }) => {
+  test('合约交易页可正常加载', { tag: ['@P0', '@PROD'] }, async ({ extensionContext }) => {
     const page = await extensionContext.newPage();
     await page.goto(process.env.EXCHANGE_URL!);
     await page.waitForLoadState('domcontentloaded');
@@ -72,7 +72,7 @@ test.describe.serial('AsterDEX - 系统健康检查', () => {
   // ========================================================
   // 测试 3：网络请求无明显 5xx 错误
   // ========================================================
-  test('网络请求无 5xx 错误', { tag: ['@P0'] }, async ({ extensionContext }) => {
+  test('网络请求无 5xx 错误', { tag: ['@P0', '@PROD'] }, async ({ extensionContext }) => {
     const page = await extensionContext.newPage();
     const failedRequests: string[] = [];
 

@@ -65,7 +65,7 @@ test.describe.serial('AsterDEX - H5 页面兼容测试', () => {
   // ========================================================
   // 测试 1：移动端（390px）主页加载
   // ========================================================
-  test('移动端视口（390px）主页可正常加载', { tag: ['@P0'] }, async ({ loggedInPage: page }) => {
+  test('移动端视口（390px）主页可正常加载', { tag: ['@P0', '@PROD'] }, async ({ loggedInPage: page }) => {
     await page.setViewportSize(MOBILE_VIEWPORT);
     console.log(`[test] 视口已设置为 ${MOBILE_VIEWPORT.width}×${MOBILE_VIEWPORT.height}`);
 
@@ -85,7 +85,7 @@ test.describe.serial('AsterDEX - H5 页面兼容测试', () => {
   // ========================================================
   // 测试 2：移动端合约交易页加载
   // ========================================================
-  test('移动端视口合约交易页可正常加载', { tag: ['@P0'] }, async ({ loggedInPage: page }) => {
+  test('移动端视口合约交易页可正常加载', { tag: ['@P0', '@PROD'] }, async ({ loggedInPage: page }) => {
     // serial 场景下 test1 已设置为移动端，此处确保一致（双保险）
     await page.setViewportSize(MOBILE_VIEWPORT);
 
@@ -116,7 +116,7 @@ test.describe.serial('AsterDEX - H5 页面兼容测试', () => {
   // ========================================================
   // 测试 3：平板（768px）布局验证
   // ========================================================
-  test('平板视口（768px）页面布局正常', { tag: ['@P0'] }, async ({ loggedInPage: page }) => {
+  test('平板视口（768px）页面布局正常', { tag: ['@P0', '@PROD'] }, async ({ loggedInPage: page }) => {
     await page.setViewportSize(TABLET_VIEWPORT);
     console.log(`[test] 视口已切换为 ${TABLET_VIEWPORT.width}×${TABLET_VIEWPORT.height}`);
 
@@ -135,7 +135,7 @@ test.describe.serial('AsterDEX - H5 页面兼容测试', () => {
   // ========================================================
   // 测试 4：恢复桌面视口 + 验证桌面专有元素
   // ========================================================
-  test('恢复桌面视口（1440px）验证正常', { tag: ['@P0'] }, async ({ loggedInPage: page }) => {
+  test('恢复桌面视口（1440px）验证正常', { tag: ['@P0', '@PROD'] }, async ({ loggedInPage: page }) => {
     await page.setViewportSize({ width: 1440, height: 900 });
     console.log('[test] 视口已恢复为 1440×900');
 
@@ -173,7 +173,7 @@ test.describe.serial('AsterDEX - H5 页面兼容测试', () => {
   //     底部内页 tab：当前委托 | 仓位 | 资产 | TWAP
   //   - "首页"/"行情" 均通过页面直接导航验证，而非点击固定底部 nav
   // ========================================================
-  test('H5 移动端各子页面内容存在', { tag: ['@P0'] }, async ({ loggedInPage: page }) => {
+  test('H5 移动端各子页面内容存在', { tag: ['@P0', '@PROD'] }, async ({ loggedInPage: page }) => {
     await page.setViewportSize(MOBILE_VIEWPORT);
     let successCount = 0;
 
@@ -304,7 +304,7 @@ test.describe.serial('AsterDEX - H5 页面兼容测试', () => {
   // ========================================================
   // 测试 6：H5 移动端限价挂单（mark price - 1000）
   // ========================================================
-  test('H5 移动端限价挂单 BTC/USDT 0.001 BTC', { tag: ['@P0'] }, async ({ loggedInPage: page }) => {
+  test('H5 移动端限价挂单 BTC/USDT 0.001 BTC', { tag: ['@P0', '@PROD'] }, async ({ loggedInPage: page }) => {
     await page.setViewportSize(MOBILE_VIEWPORT);
 
     await page.goto(process.env.EXCHANGE_URL!);
@@ -445,7 +445,7 @@ test.describe.serial('AsterDEX - H5 页面兼容测试', () => {
   // ========================================================
   // 测试 7：H5 移动端取消限价委托
   // ========================================================
-  test('H5 移动端取消刚才的限价委托单', { tag: ['@P0'] }, async ({ loggedInPage: page }) => {
+  test('H5 移动端取消刚才的限价委托单', { tag: ['@P0', '@PROD'] }, async ({ loggedInPage: page }) => {
     // 复用 test 6 已打开的页面，无需重新导航
     await page.locator('button[role="tab"]:has-text("当前委托")').click();
     await page.waitForTimeout(1000);
@@ -498,7 +498,7 @@ test.describe.serial('AsterDEX - H5 页面兼容测试', () => {
   // ========================================================
   // 测试 8：H5 导航菜单（Toggle Menu）
   // ========================================================
-  test('H5 移动端导航菜单可正常打开并展示各入口', { tag: ['@P0'] }, async ({ loggedInPage: page }) => {
+  test('H5 移动端导航菜单可正常打开并展示各入口', { tag: ['@P0', '@PROD'] }, async ({ loggedInPage: page }) => {
     await page.setViewportSize(MOBILE_VIEWPORT);
     await page.goto(getBaseUrl());
     await page.waitForLoadState('domcontentloaded');
@@ -554,7 +554,7 @@ test.describe.serial('AsterDEX - H5 页面兼容测试', () => {
   // ========================================================
   // 测试 9：H5 现货交易页
   // ========================================================
-  test('H5 移动端现货交易页可正常加载', { tag: ['@P0'] }, async ({ loggedInPage: page }) => {
+  test('H5 移动端现货交易页可正常加载', { tag: ['@P0', '@PROD'] }, async ({ loggedInPage: page }) => {
     await page.setViewportSize(MOBILE_VIEWPORT);
     const origin = new URL(process.env.EXCHANGE_URL!).origin;
     await page.goto(`${origin}/zh-CN/trade/pro/spot/ETHUSDT`);
@@ -584,7 +584,7 @@ test.describe.serial('AsterDEX - H5 页面兼容测试', () => {
   // ========================================================
   // 测试 10：H5 Shield 交易页
   // ========================================================
-  test('H5 移动端 Shield 交易页可正常加载', { tag: ['@P0'] }, async ({ loggedInPage: page }) => {
+  test('H5 移动端 Shield 交易页可正常加载', { tag: ['@P0', '@PROD'] }, async ({ loggedInPage: page }) => {
     await page.setViewportSize(MOBILE_VIEWPORT);
     const origin = new URL(process.env.EXCHANGE_URL!).origin;
     await page.goto(`${origin}/zh-CN/trade/shield/futures/BTCUSDT`);
@@ -617,7 +617,7 @@ test.describe.serial('AsterDEX - H5 页面兼容测试', () => {
   // ========================================================
   // 测试 11：H5 1001x 交易页
   // ========================================================
-  test('H5 移动端 1001x 页面可正常加载', { tag: ['@P0'] }, async ({ loggedInPage: page }) => {
+  test('H5 移动端 1001x 页面可正常加载', { tag: ['@P0', '@PROD'] }, async ({ loggedInPage: page }) => {
     await page.setViewportSize(MOBILE_VIEWPORT);
     const origin = new URL(process.env.EXCHANGE_URL!).origin;
     await page.goto(`${origin}/zh-CN/trade/1001x/futures/BTCUSD`);
@@ -656,7 +656,7 @@ test.describe.serial('AsterDEX - H5 页面兼容测试', () => {
   // ========================================================
   // 测试 12：H5 空投页
   // ========================================================
-  test('H5 移动端空投页面模块完整', { tag: ['@P0'] }, async ({ loggedInPage: page }) => {
+  test('H5 移动端空投页面模块完整', { tag: ['@P0', '@PROD'] }, async ({ loggedInPage: page }) => {
     await page.setViewportSize(MOBILE_VIEWPORT);
     const origin = new URL(process.env.EXCHANGE_URL!).origin;
     await page.goto(`${origin}/zh-CN/airdrop`);
@@ -699,7 +699,7 @@ test.describe.serial('AsterDEX - H5 页面兼容测试', () => {
   // ========================================================
   // 测试 13：H5 奖励页（Trade & Earn）
   // ========================================================
-  test('H5 移动端奖励页面模块完整', { tag: ['@P0'] }, async ({ loggedInPage: page }) => {
+  test('H5 移动端奖励页面模块完整', { tag: ['@P0', '@PROD'] }, async ({ loggedInPage: page }) => {
     await page.setViewportSize(MOBILE_VIEWPORT);
     const origin = new URL(process.env.EXCHANGE_URL!).origin;
     await page.goto(`${origin}/zh-CN/trade-and-earn`);
@@ -743,7 +743,7 @@ test.describe.serial('AsterDEX - H5 页面兼容测试', () => {
   // ========================================================
   // 测试 14：H5 投资组合页
   // ========================================================
-  test('H5 移动端投资组合页面模块完整', { tag: ['@P0'] }, async ({ loggedInPage: page }) => {
+  test('H5 移动端投资组合页面模块完整', { tag: ['@P0', '@PROD'] }, async ({ loggedInPage: page }) => {
     await page.setViewportSize(MOBILE_VIEWPORT);
     const origin = new URL(process.env.EXCHANGE_URL!).origin;
     await page.goto(`${origin}/zh-CN/portfolio/pro`);
@@ -790,7 +790,7 @@ test.describe.serial('AsterDEX - H5 页面兼容测试', () => {
   // ========================================================
   // 测试 15：H5 推荐页
   // ========================================================
-  test('H5 移动端推荐页面模块完整', { tag: ['@P0'] }, async ({ loggedInPage: page }) => {
+  test('H5 移动端推荐页面模块完整', { tag: ['@P0', '@PROD'] }, async ({ loggedInPage: page }) => {
     await page.setViewportSize(MOBILE_VIEWPORT);
     const origin = new URL(process.env.EXCHANGE_URL!).origin;
     await page.goto(`${origin}/zh-CN/referral`);
@@ -827,7 +827,7 @@ test.describe.serial('AsterDEX - H5 页面兼容测试', () => {
   // ========================================================
   // 测试 16：H5 火箭发射页
   // ========================================================
-  test('H5 移动端火箭发射页面模块完整', { tag: ['@P0'] }, async ({ loggedInPage: page }) => {
+  test('H5 移动端火箭发射页面模块完整', { tag: ['@P0', '@PROD'] }, async ({ loggedInPage: page }) => {
     await page.setViewportSize(MOBILE_VIEWPORT);
     const origin = new URL(process.env.EXCHANGE_URL!).origin;
     await page.goto(`${origin}/zh-CN/rocket-launch`, { waitUntil: 'networkidle', timeout: 30000 });
@@ -866,7 +866,7 @@ test.describe.serial('AsterDEX - H5 页面兼容测试', () => {
   // ========================================================
   // 测试 17：H5 Earn 页
   // ========================================================
-  test('H5 移动端 Earn 页面模块完整', { tag: ['@P0'] }, async ({ loggedInPage: page }) => {
+  test('H5 移动端 Earn 页面模块完整', { tag: ['@P0', '@PROD'] }, async ({ loggedInPage: page }) => {
     await page.setViewportSize(MOBILE_VIEWPORT);
     const origin = new URL(process.env.EXCHANGE_URL!).origin;
     await page.goto(`${origin}/zh-CN/earn`);
@@ -908,7 +908,7 @@ test.describe.serial('AsterDEX - H5 页面兼容测试', () => {
   // ========================================================
   // 测试 18：H5 USDF 稳定币页
   // ========================================================
-  test('H5 移动端 USDF 页面模块完整', { tag: ['@P0'] }, async ({ loggedInPage: page }) => {
+  test('H5 移动端 USDF 页面模块完整', { tag: ['@P0', '@PROD'] }, async ({ loggedInPage: page }) => {
     await page.setViewportSize(MOBILE_VIEWPORT);
     const origin = new URL(process.env.EXCHANGE_URL!).origin;
     await page.goto(`${origin}/zh-CN/usdf`);
@@ -951,7 +951,7 @@ test.describe.serial('AsterDEX - H5 页面兼容测试', () => {
   // ========================================================
   // 测试 19：H5 API 管理页
   // ========================================================
-  test('H5 移动端 API 管理页面可正常加载', { tag: ['@P0'] }, async ({ loggedInPage: page }) => {
+  test('H5 移动端 API 管理页面可正常加载', { tag: ['@P0', '@PROD'] }, async ({ loggedInPage: page }) => {
     await page.setViewportSize(MOBILE_VIEWPORT);
     const origin = new URL(process.env.EXCHANGE_URL!).origin;
     await page.goto(`${origin}/zh-CN/api-management`);
