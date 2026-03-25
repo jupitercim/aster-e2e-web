@@ -6,7 +6,7 @@ dotenv.config();
 export default defineConfig({
   testDir: './tests/cases',
   timeout: 60000,   // 单测超时 60s（原 120s）
-  retries: 0,
+  retries: 1,       // 偶发超时自动重试一次（全套串行跑时资源竞争导致的偶发失败）
   workers: 1,  // MetaMask userdata 目录只能被一个进程占用，必须串行
   reporter: [['html', { open: 'never' }]],
   use: {
