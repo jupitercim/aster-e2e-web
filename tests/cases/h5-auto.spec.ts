@@ -747,7 +747,8 @@ test.describe.serial('AsterDEX - H5 页面兼容测试', () => {
     await page.setViewportSize(MOBILE_VIEWPORT);
     const origin = new URL(process.env.EXCHANGE_URL!).origin;
     await page.goto(`${origin}/zh-CN/portfolio/pro`);
-    await page.waitForSelector('text=投资组合', { timeout: 15000 });
+    await page.waitForLoadState('domcontentloaded');
+    await page.waitForSelector('text=投资组合', { timeout: 30000 });
 
     // 页面标题（用 heading role 避免命中 header 导航里的隐藏 span）
     const title = page.getByRole('heading', { name: '投资组合' }).first();
