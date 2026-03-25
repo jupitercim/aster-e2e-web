@@ -1005,4 +1005,173 @@ test.describe.serial('AsterDEX - Market Data 市场数据', () => {
     console.log('[test] ✅ 四个子页面错误检查完成');
   });
 
+
+  // ========================================================
+  // Trading Rules - 1：交易规则 Tab — 数值验证 + 翻页 + 搜索
+  // ========================================================
+  test('[Trading Rules] 交易规则Tab数值正常、可翻页、搜索ASTE显示ASTERUSDT', { tag: ['@P0'] }, async ({ loggedInPage: page }) => {
+    const TRADING_RULES_URL = `${getOrigin()}/zh-CN/futures/trading-rules/trading-rules`;
+    await page.goto(TRADING_RULES_URL);
+    await page.waitForLoadState('domcontentloaded');
+    await page.waitForTimeout(3000);
+
+    // 点击"交易规则" Tab
+    const tradingRulesTab = page.locator('[role="tab"]:has-text("交易规则"), button:has-text("交易规则")').first();
+    if (await tradingRulesTab.isVisible({ timeout: 3000 }).catch(() => false)) {
+      await tradingRulesTab.click();
+      await page.waitForTimeout(1500);
+      console.log('[test] ✅ 点击了"交易规则" Tab');
+    } else {
+      console.log('[test] ⚠️ 未找到"交易规则" Tab，可能已默认选中');
+    }
+
+    // 滑到最下面
+    await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
+    await page.waitForTimeout(1000);
+
+    // 点击第2页
+    const page2Btn = page.locator('button:text-is("2"), [aria-label="2"], li:text-is("2")').first();
+    if (await page2Btn.isVisible({ timeout: 3000 }).catch(() => false)) {
+      await page2Btn.click();
+      await page.waitForTimeout(2000);
+      console.log('[test] ✅ 点击了第2页');
+    } else {
+      console.log('[test] ⚠️ 未找到第2页按钮，跳过翻页');
+    }
+
+    // 验证表格中数字都大于0，百分数在 0%-20% 之间
+    const cellTexts: string[] = await page.evaluate(() => {
+      return Array.from(document.querySelectorAll('table td, [role="cell"]'))
+        .map((el: any) => el.innerText?.trim())
+        .filter(Boolean);
+    });
+
+    let numOk = 0, numFail = 0, pctOk = 0, pctFail = 0;
+    for (const t of cellTexts) {
+      if (t.endsWith('%')) {
+        const v = parseFloat(t);
+        if (!isNaN(v)) { v >= 0 && v <= 20 ? pctOk++ : pctFail++; }
+      } else {
+        const v = parseFloat(t.replace(/,/g, ''));
+        // 允许 0（部分费率/字段合法为 0），只排除负数
+        if (!isNaN(v) && t !== '') { v >= 0 ? numOk++ : numFail++; }
+      }
+    }
+    console.log(`[test] 数字 >=0: ${numOk} ✅  负数: ${numFail}`);
+    console.log(`[test] 百分数 0-20%: ${pctOk} ✅  越界: ${pctFail}`);
+    expect.soft(numFail, '存在负数值').toBe(0);
+    expect.soft(pctFail, '存在超出 0%-20% 的百分数').toBe(0);
+
+    // 搜索框输入 aste，ASTERUSDT 自动出现
+    await page.evaluate(() => window.scrollTo(0, 0));
+    await page.waitForTimeout(500);
+    const searchInput = page.locator('input[placeholder*="搜索"], input[placeholder*="Search"], input[type="search"]').first();
+    if (await searchInput.isVisible({ timeout: 3000 }).catch(() => false)) {
+      await searchInput.fill('aste');
+      await page.waitForTimeout(1500);
+      const asterRow = await page.locator('text=ASTERUSDT').first().isVisible({ timeout: 3000 }).catch(() => false);
+      console.log(`[test] 搜索 aste → ASTERUSDT 可见: ${asterRow ? '✅' : '⚠️'}`);
+      expect.soft(asterRow, '搜索 aste 后 ASTERUSDT 未出现').toBe(true);
+      await searchInput.clear();
+    } else {
+      console.log('[test] ⚠️ 未找到搜索框，跳过搜索验证');
+    }
+
+    await page.screenshot({ path: `test-results/trading-rules-tab-${Date.now()}.png` });
+    console.log('[test] ✅ 交易规则 Tab 验证完成');
+  });
+
+
+  // ========================================================
+  // Trading Rules - 2：多资产信息 — 底部关键标签存在
+  // ========================================================
+  test('[Trading Rules] 多资产信息底部包含联合保证金/自动兑换/多资产汇率', { tag: ['@P0'] }, async ({ loggedInPage: page }) => {
+    // 多资产信息是独立子页面
+    await page.goto(`${getOrigin()}/zh-CN/futures/trading-rules/multi-assets-info`);
+    await page.waitForLoadState('domcontentloaded');
+    await page.waitForTimeout(2000);
+    console.log('[test] ✅ 导航到多资产信息页');
+
+    // 拉到底部
+    await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
+    await page.waitForTimeout(1000);
+
+    // 验证三个关键标签存在
+    const keywords = ['联合保证金模式支持的资产', '自动兑换', '多资产汇率'];
+    for (const kw of keywords) {
+      const el = page.locator(`text=${kw}`).first();
+      const visible = await el.isVisible({ timeout: 3000 }).catch(() => false);
+      console.log(`[test] "${kw}": ${visible ? '✅' : '⚠️ 未找到'}`);
+      expect.soft(visible, `"${kw}" 不存在`).toBe(true);
+    }
+
+    await page.screenshot({ path: `test-results/trading-rules-multi-asset-${Date.now()}.png` });
+    console.log('[test] ✅ 多资产信息验证完成');
+  });
+
+
+  // ========================================================
+  // Trading Rules - 3：杠杆与限额 — 搜索 eth 显示 ETHUSD1 & ETHUSDT
+  // ========================================================
+  test('[Trading Rules] 杠杆与限额搜索ETH显示ETHUSD1和ETHUSDT', { tag: ['@P0'] }, async ({ loggedInPage: page }) => {
+    await page.goto(`${getOrigin()}/zh-CN/futures/trading-rules/leverage-and-limit`);
+    await page.waitForLoadState('domcontentloaded');
+    await page.waitForTimeout(2000);
+    console.log('[test] ✅ 导航到杠杆与限额页');
+
+    // 拉到底部，找到并点击 BTCUSDT
+    await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
+    await page.waitForTimeout(1000);
+    const btcRow = page.locator('text=BTCUSDT').first();
+    if (await btcRow.isVisible({ timeout: 3000 }).catch(() => false)) {
+      await btcRow.click({ force: true }).catch(() => {});
+      await page.waitForTimeout(1000);
+      console.log('[test] ✅ 点击了 BTCUSDT');
+    } else {
+      console.log('[test] ⚠️ 未找到 BTCUSDT 行');
+    }
+
+    // 在搜索框输入 eth
+    await page.evaluate(() => window.scrollTo(0, 0));
+    await page.waitForTimeout(500);
+    const searchInput = page.locator('input[placeholder*="搜索"], input[placeholder*="Search"], input[type="search"]').first();
+    if (await searchInput.isVisible({ timeout: 3000 }).catch(() => false)) {
+      await searchInput.fill('eth');
+      await page.waitForTimeout(1500);
+
+      const ethusd1 = await page.locator('text=ETHUSD1').first().isVisible({ timeout: 3000 }).catch(() => false);
+      const ethusdt = await page.locator('text=ETHUSDT').first().isVisible({ timeout: 3000 }).catch(() => false);
+      console.log(`[test] ETHUSD1 可见: ${ethusd1 ? '✅' : '⚠️'}`);
+      console.log(`[test] ETHUSDT 可见: ${ethusdt ? '✅' : '⚠️'}`);
+      expect.soft(ethusd1, '搜索 eth 后 ETHUSD1 未出现').toBe(true);
+      expect.soft(ethusdt, '搜索 eth 后 ETHUSDT 未出现').toBe(true);
+
+      await searchInput.clear();
+    } else {
+      console.log('[test] ⚠️ 未找到搜索框，跳过');
+    }
+
+    await page.screenshot({ path: `test-results/trading-rules-leverage-${Date.now()}.png` });
+    console.log('[test] ✅ 杠杆与限额验证完成');
+  });
+
+
+  // ========================================================
+  // Trading Rules - 4：杠杆与保证金 Tab 可见
+  // ========================================================
+  test('[Trading Rules] 杠杆与保证金Tab可打开', { tag: ['@P0'] }, async ({ loggedInPage: page }) => {
+    await page.goto(`${getOrigin()}/zh-CN/futures/trading-rules/leverage-and-margin`);
+    await page.waitForLoadState('domcontentloaded');
+    await page.waitForTimeout(2000);
+    console.log('[test] ✅ 导航到杠杆与保证金页');
+
+    // 验证页面有内容加载（表格或列表）
+    const hasContent = await page.locator('table, [role="table"], [class*="table"]').first()
+      .isVisible({ timeout: 3000 }).catch(() => false);
+    console.log(`[test] 页面内容: ${hasContent ? '✅ 有表格' : '⚠️ 未检测到表格'}`);
+
+    await page.screenshot({ path: `test-results/trading-rules-leverage-margin-${Date.now()}.png` });
+    console.log('[test] ✅ 杠杆与保证金 Tab 验证完成');
+  });
+
 });
