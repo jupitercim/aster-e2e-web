@@ -482,7 +482,65 @@ test.describe.serial('AsterDEX - 期货限价委托', () => {
     expect(modifyOk).toBe(true);
     console.log('[test] ✅ 第一次改单成功');
 
-    // ── 第二次：不修改直接点确认，期望提示"不用修改" ──
+    // ── 第二次改单：修改价格为当前价格 - 2 ──
+    await page.locator('button[role="tab"]:has-text("当前委托")').click();
+    await page.waitForTimeout(1000);
+    await clickEditButton();
+    await page.waitForTimeout(1000);
+
+    const editPriceInput2 = page.getByRole('dialog').getByRole('spinbutton').first();
+    if (await editPriceInput2.isVisible({ timeout: 3000 }).catch(() => false)) {
+      const prefilled2 = await editPriceInput2.inputValue().catch(() => String(orderPrice));
+      const newPrice2 = Math.floor(parseFloat(prefilled2.replace(/,/g, '')) - 1);
+      await editPriceInput2.click({ clickCount: 3 });
+      await editPriceInput2.fill(String(newPrice2));
+      console.log(`[test] 第二次修改价格为: ${newPrice2}（预填值: ${prefilled2}）`);
+      await page.waitForTimeout(300);
+    } else {
+      console.log('[test] ⚠️ 第二次未找到编辑价格输入框');
+    }
+
+    const modifyToast2Promise = page.getByText(/修改成功|改单成功|订单修改成功|Order modified/i).first()
+      .waitFor({ state: 'visible', timeout: 10000 }).then(() => true).catch(() => false);
+    await clickSave();
+    await handleConfirmDialog(page);
+    await page.waitForTimeout(500);
+    const modifyOk2 = await modifyToast2Promise;
+    if (modifyOk2) console.log('[test] ✅ 第二次改单成功 toast 检测到');
+    else console.log('[test] ⚠️ 第二次改单成功 toast 未检测到');
+    expect(modifyOk2).toBe(true);
+    console.log('[test] ✅ 第二次改单成功');
+
+    // ── 第三次改单：修改价格为当前价格 - 3 ──
+    await page.locator('button[role="tab"]:has-text("当前委托")').click();
+    await page.waitForTimeout(1000);
+    await clickEditButton();
+    await page.waitForTimeout(1000);
+
+    const editPriceInput3 = page.getByRole('dialog').getByRole('spinbutton').first();
+    if (await editPriceInput3.isVisible({ timeout: 3000 }).catch(() => false)) {
+      const prefilled3 = await editPriceInput3.inputValue().catch(() => String(orderPrice));
+      const newPrice3 = Math.floor(parseFloat(prefilled3.replace(/,/g, '')) - 1);
+      await editPriceInput3.click({ clickCount: 3 });
+      await editPriceInput3.fill(String(newPrice3));
+      console.log(`[test] 第三次修改价格为: ${newPrice3}（预填值: ${prefilled3}）`);
+      await page.waitForTimeout(300);
+    } else {
+      console.log('[test] ⚠️ 第三次未找到编辑价格输入框');
+    }
+
+    const modifyToast3Promise = page.getByText(/修改成功|改单成功|订单修改成功|Order modified/i).first()
+      .waitFor({ state: 'visible', timeout: 10000 }).then(() => true).catch(() => false);
+    await clickSave();
+    await handleConfirmDialog(page);
+    await page.waitForTimeout(500);
+    const modifyOk3 = await modifyToast3Promise;
+    if (modifyOk3) console.log('[test] ✅ 第三次改单成功 toast 检测到');
+    else console.log('[test] ⚠️ 第三次改单成功 toast 未检测到');
+    expect(modifyOk3).toBe(true);
+    console.log('[test] ✅ 第三次改单成功');
+
+    // ── 第四次：不修改直接点确认，期望提示"不用修改" ──
     await page.locator('button[role="tab"]:has-text("当前委托")').click();
     await page.waitForTimeout(1000);
 
