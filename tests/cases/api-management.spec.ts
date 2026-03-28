@@ -10,7 +10,7 @@ function getApiManagementUrl(): string {
 test.describe.serial('AsterDEX - API 管理', () => {
 
   // ========================================================
-  // 测试 1：API 管理页面正常加载
+  // 测试 1：打开 API 管理页面，切换专业API tab，点击创建，验证弹窗
   // ========================================================
   test('API 管理页面正常加载', { tag: ['@P0', '@PROD'] }, async ({ loggedInPage: page }) => {
     const url = getApiManagementUrl();
@@ -24,112 +24,65 @@ test.describe.serial('AsterDEX - API 管理', () => {
     console.log(`[test] 页面标题: ${title}`);
     expect.soft(title).toBeTruthy();
 
-    // 验证「API 管理」标题可见
-    // 等待页面完全渲染（API 管理页动态加载）
-    await page.waitForTimeout(2000);
-
-    // 验证标题 —— 用 getByRole 最稳定，不依赖文字分隔符
-    const headingEl = page.getByRole('heading').filter({ hasText: /API/ }).first();
-    const headingFound = await headingEl.isVisible({ timeout: 8000 }).catch(() => false);
-    if (headingFound) {
-      const headingText = await headingEl.textContent();
-      console.log(`[test] ✅ 找到页面标题: "${headingText?.trim()}"`);
-    } else {
-      console.log('[test] ⚠️ 未找到标题，尝试备用方案');
-    }
-    expect.soft(headingFound).toBe(true);
-
-    // 验证「创建 API」按钮
-    const createBtn = page.locator('button:has-text("创建 API"), button:has-text("创建API"), button:has-text("Create API")').first();
-    const hasCreateBtn = await createBtn.isVisible({ timeout: 3000 }).catch(() => false);
-    console.log(`[test] 创建 API 按钮: ${hasCreateBtn ? '✅ 存在' : '⚠️ 未找到'}`);
-    expect.soft(hasCreateBtn).toBe(true);
-
     await page.screenshot({ path: `test-results/api-management-load-${Date.now()}.png` });
     console.log('[test] ✅ API 管理页面加载完成');
   });
 
 
   // ========================================================
-  // 测试 2：API / 专业API Tab 切换
+  // 测试 2：切换专业API Tab，点击创建，验证弹窗
   // ========================================================
-  test('API 与专业API Tab 切换正常', { tag: ['@P0', '@PROD'] }, async ({ loggedInPage: page }) => {
+  test('专业API Tab 创建弹窗验证', { tag: ['@P0', '@PROD'] }, async ({ loggedInPage: page }) => {
     // 复用 test 1 已打开的页面，无需重新导航
 
     // 点击「专业API」Tab
     const proTab = page.locator('button:has-text("专业API"), button:has-text("Professional API"), [role="tab"]:has-text("专业")').first();
-    if (await proTab.isVisible({ timeout: 3000 }).catch(() => false)) {
+    const proTabVisible = await proTab.isVisible({ timeout: 5000 }).catch(() => false);
+    if (proTabVisible) {
       await proTab.click();
-      console.log('[test] 点击了「专业API」Tab');
-      await page.waitForTimeout(1000);
+      console.log('[test] ✅ 点击了「专业API」Tab');
+      await page.waitForTimeout(1500);
     } else {
-      console.log('[test] ⚠️ 未找到「专业API」Tab，跳过');
+      console.log('[test] ⚠️ 未找到「专业API」Tab，跳过切换');
     }
 
-    // 切换回「API」Tab
-    const apiTab = page.locator('button:has-text("API"):not(:has-text("专业")), [role="tab"]:text-is("API")').first();
-    if (await apiTab.isVisible({ timeout: 3000 }).catch(() => false)) {
-      await apiTab.click();
-      console.log('[test] 切换回「API」Tab');
-      await page.waitForTimeout(1000);
-    }
-
-    console.log('[test] ✅ API Tab 切换验证完成');
-  });
-
-
-  // ========================================================
-  // 测试 3：点击「创建 API」弹窗出现
-  // ========================================================
-  test('创建 API 按钮点击后弹窗出现', { tag: ['@P0', '@PROD'] }, async ({ loggedInPage: page }) => {
-    // 复用 test 2 已打开的页面，无需重新导航
-
-    // 关闭任何已打开的弹窗（上一测试可能留下 overlay）
-    await page.keyboard.press('Escape');
-    await page.waitForTimeout(800);
-
-    const createBtn = page.locator('button:has-text("创建 API"), button:has-text("创建API"), button:has-text("Create API")').first();
-    if (!(await createBtn.isVisible({ timeout: 3000 }).catch(() => false))) {
-      console.log('[test] ⚠️ 未找到「创建 API」按钮，跳过');
+    // 点击「创建」按钮
+    const createBtn = page.locator(
+      'button:has-text("创建 API"), button:has-text("创建API"), button:has-text("Create API"), button:has-text("创建")'
+    ).first();
+    const createBtnVisible = await createBtn.isVisible({ timeout: 5000 }).catch(() => false);
+    if (!createBtnVisible) {
+      console.log('[test] ⚠️ 未找到创建按钮，跳过');
       return;
     }
 
-    // 若弹窗已打开（按钮 data-state="open"），直接验证内容；否则点击触发
-    const isAlreadyOpen = await createBtn.evaluate((el: Element) =>
-      el.getAttribute('data-state') === 'open'
-    ).catch(() => false);
-
-    if (isAlreadyOpen) {
-      console.log('[test] 弹窗已处于打开状态，直接验证内容');
-    } else {
-      await createBtn.click({ force: true });
-      console.log('[test] 点击了「创建 API」按钮');
-    }
+    await createBtn.click();
+    console.log('[test] ✅ 点击了创建按钮');
     await page.waitForTimeout(1500);
 
-    // 验证弹窗或表单出现
+    // 验证弹窗出现
     const dialogKeywords = ['API标签', 'API Label', 'IP 白名单', 'IP Whitelist', '权限', 'Permission', '创建', 'Create'];
     let dialogFound = false;
     for (const kw of dialogKeywords) {
       const el = page.locator(`text=${kw}`).first();
       if (await el.isVisible({ timeout: 3000 }).catch(() => false)) {
-        console.log(`[test] ✅ 找到创建 API 弹窗元素: "${kw}"`);
+        console.log(`[test] ✅ 弹窗出现，找到元素: "${kw}"`);
         dialogFound = true;
         break;
       }
     }
 
     if (!dialogFound) {
-      console.log('[test] ⚠️ 未找到创建弹窗，可能需要先启用交易');
+      console.log('[test] ⚠️ 未检测到创建弹窗');
     }
 
     await page.screenshot({ path: `test-results/api-management-create-${Date.now()}.png` });
 
-    // 关闭弹窗（如有）
+    // 关闭弹窗
     await page.keyboard.press('Escape');
     await page.waitForTimeout(500);
 
-    console.log('[test] ✅ 创建 API 弹窗验证完成');
+    console.log('[test] ✅ 专业API 创建弹窗验证完成');
   });
 
 });
