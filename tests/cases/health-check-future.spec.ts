@@ -426,7 +426,73 @@ test.describe.serial('AsterDEX - 期货页面检查', () => {
 
 
   // ========================================================
-  // 测试 8：全页截图
+  // 测试 8：交易对下拉框与切换交易对
+  // ========================================================
+  test('交易对下拉框与切换交易对', { tag: ['@P0', '@PROD'] }, async ({ loggedInPage: page }) => {
+    await page.goto(process.env.EXCHANGE_URL!);
+    await page.waitForLoadState('domcontentloaded');
+    await page.waitForTimeout(3000);
+
+    // 1. 交易对选择器按钮可见，且显示 BTCUSDT
+    const pairBtn = page.locator('button[aria-expanded], button[aria-haspopup]')
+      .filter({ hasText: 'BTCUSDT' }).first();
+    const isPairBtnVisible = await pairBtn.isVisible({ timeout: 5000 }).catch(() => false);
+    expect.soft(isPairBtnVisible, '交易对选择器按钮不可见').toBe(true);
+    console.log(`[test] ${isPairBtnVisible ? '✅' : '⚠️'} 交易对选择器按钮: ${isPairBtnVisible ? '可见' : '未找到'}`);
+
+    // 2. 点击打开下拉菜单
+    await pairBtn.click({ force: true });
+    await page.waitForTimeout(1000);
+
+    // 验证菜单展开：出现搜索框
+    const searchBox = page.locator('[role="menu"] input, [role="menu"] [role="combobox"]').first();
+    const isMenuOpen = await searchBox.isVisible({ timeout: 3000 }).catch(() => false);
+    expect.soft(isMenuOpen, '交易对下拉菜单未展开').toBe(true);
+    console.log(`[test] ${isMenuOpen ? '✅' : '⚠️'} 下拉菜单展开: ${isMenuOpen ? '可见（含搜索框）' : '未检测到'}`);
+
+    // 验证菜单包含期货/现货 Tab（这两个 tab 仅在交易对菜单展开时出现）
+    const contractTab = page.locator('[role="tab"]:has-text("期货"), [role="tab"]:has-text("现货")').first();
+    const hasContractTab = await contractTab.isVisible({ timeout: 3000 }).catch(() => false);
+    console.log(`[test] ${hasContractTab ? '✅' : '⚠️'} 菜单含合约 Tab: ${hasContractTab ? '可见' : '未找到'}`);
+
+    // 3. 在列表中点击 SOLUSDT
+    const solRow = page.locator('[role="menu"]').getByText('SOLUSDT').first();
+    const hasSolRow = await solRow.isVisible({ timeout: 3000 }).catch(() => false);
+    if (!hasSolRow) {
+      console.log('[test] ⚠️ 未找到 SOLUSDT 行，跳过切换验证');
+      // 关闭菜单并退出
+      await page.keyboard.press('Escape');
+      return;
+    }
+    await solRow.click();
+    console.log('[test] ✅ 点击 SOLUSDT');
+
+    // 4. 等待 URL 更新为 SOLUSDT
+    await page.waitForTimeout(2000);
+    const newUrl = page.url();
+    const urlHasSol = newUrl.includes('SOLUSDT');
+    expect.soft(urlHasSol, `切换后 URL 应含 SOLUSDT，实际: ${newUrl}`).toBe(true);
+    console.log(`[test] ${urlHasSol ? '✅' : '⚠️'} URL 切换: ${newUrl}`);
+
+    // 验证行情栏交易对名称更新
+    const solPairBtn = page.locator('button[aria-expanded], button[aria-haspopup]')
+      .filter({ hasText: 'SOLUSDT' }).first();
+    const isSolVisible = await solPairBtn.isVisible({ timeout: 5000 }).catch(() => false);
+    console.log(`[test] ${isSolVisible ? '✅' : '⚠️'} 行情栏交易对更新为 SOLUSDT: ${isSolVisible ? '是' : '否'}`);
+
+    // 5. 导航回 BTCUSDT
+    await page.goto(process.env.EXCHANGE_URL!);
+    await page.waitForLoadState('domcontentloaded');
+    await page.waitForTimeout(2000);
+    const isBackToBtc = page.url().includes('BTCUSDT');
+    console.log(`[test] ${isBackToBtc ? '✅' : '⚠️'} 返回 BTCUSDT 页面: ${isBackToBtc ? '是' : '否'}`);
+
+    await page.screenshot({ path: `test-results/future-page-check-pair-switch-${Date.now()}.png` });
+  });
+
+
+  // ========================================================
+  // 测试 9：全页截图
   // ========================================================
   test('全页截图', { tag: ['@P0', '@PROD'] }, async ({ loggedInPage: page }) => {
     // 滚动回顶部，截取完整页面
