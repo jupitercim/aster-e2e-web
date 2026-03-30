@@ -492,7 +492,88 @@ test.describe.serial('AsterDEX - 期货页面检查', () => {
 
 
   // ========================================================
-  // 测试 9：全页截图
+  // 测试 9：充值 / 提现 / 转账 按钮与弹窗
+  // ========================================================
+  test('充值/提现/转账按钮与弹窗', { tag: ['@P0', '@PROD'] }, async ({ loggedInPage: page }) => {
+    await page.goto(process.env.EXCHANGE_URL!);
+    await page.waitForLoadState('domcontentloaded');
+    await page.waitForTimeout(3000);
+
+    // 1. 账户面板三个按钮均可见
+    for (const label of ['充值', '提现', '转账']) {
+      const btn = page.locator(`button:has-text("${label}")`).first();
+      const visible = await btn.isVisible({ timeout: 5000 }).catch(() => false);
+      expect.soft(visible, `"${label}" 按钮不可见`).toBe(true);
+      console.log(`[test] ${visible ? '✅' : '⚠️'} "${label}" 按钮: ${visible ? '可见' : '未找到'}`);
+    }
+
+    // 2. 点击充值，dialog 弹出
+    await page.locator('button:has-text("充值")').first().click();
+    await page.waitForTimeout(1000);
+
+    const dialog = page.locator('[role="dialog"]');
+    const isDialogVisible = await dialog.isVisible({ timeout: 3000 }).catch(() => false);
+    expect.soft(isDialogVisible, '充值 dialog 未弹出').toBe(true);
+    console.log(`[test] ${isDialogVisible ? '✅' : '⚠️'} 充值 dialog: ${isDialogVisible ? '已弹出' : '未检测到'}`);
+
+    // 验证 dialog 标题含"账户"
+    const dialogTitle = dialog.locator('text=/账户/').first();
+    const hasTitleText = await dialogTitle.isVisible({ timeout: 2000 }).catch(() => false);
+    console.log(`[test] ${hasTitleText ? '✅' : '⚠️'} Dialog 标题含"账户": ${hasTitleText ? '是' : '否'}`);
+
+    // 验证 dialog 内含 充值/提现/转账 Tab 切换按钮
+    for (const tab of ['充值', '提现', '转账']) {
+      const tabBtn = dialog.locator(`button:has-text("${tab}")`).first();
+      const tabVisible = await tabBtn.isVisible({ timeout: 2000 }).catch(() => false);
+      console.log(`[test] ${tabVisible ? '✅' : '⚠️'} Dialog 内 "${tab}" Tab: ${tabVisible ? '可见' : '未找到'}`);
+      expect.soft(tabVisible, `Dialog 内 "${tab}" Tab 不可见`).toBe(true);
+    }
+
+    // 3. 充值 Tab 内容：账户类型、网络选择、金额输入、代币选择、余额
+    const depositChecks: Array<{ label: string; selector: string }> = [
+      { label: '账户类型选择器', selector: 'button:has-text("合约账户"), button:has-text("现货账户")' },
+      { label: '网络选择器',     selector: 'button:has-text("BNB"), button:has-text("Testnet"), button:has-text("网络")' },
+      { label: '金额输入框',     selector: '[role="spinbutton"], input[type="number"], input[inputmode="decimal"]' },
+      { label: '余额标签',       selector: 'text=/余额/' },
+    ];
+    for (const { label, selector } of depositChecks) {
+      const el = dialog.locator(selector).first();
+      const visible = await el.isVisible({ timeout: 2000 }).catch(() => false);
+      console.log(`[test] ${visible ? '✅' : '⚠️'} 充值弹窗 - ${label}: ${visible ? '可见' : '未找到'}`);
+    }
+
+    // 4. 切换到提现 Tab
+    await dialog.locator('button:has-text("提现")').first().click();
+    await page.waitForTimeout(500);
+    const withdrawLabel = dialog.locator('text=/可提现金额/').first();
+    const hasWithdrawLabel = await withdrawLabel.isVisible({ timeout: 2000 }).catch(() => false);
+    console.log(`[test] ${hasWithdrawLabel ? '✅' : '⚠️'} 提现 Tab - 可提现金额标签: ${hasWithdrawLabel ? '可见' : '未找到'}`);
+    expect.soft(hasWithdrawLabel, '提现 Tab 未显示"可提现金额"').toBe(true);
+
+    // 5. 切换到转账 Tab
+    await dialog.locator('button:has-text("转账")').first().click();
+    await page.waitForTimeout(500);
+    const transferFrom = dialog.locator('text=/从/').first();
+    const transferTo   = dialog.locator('text=/到/').first();
+    const hasFrom = await transferFrom.isVisible({ timeout: 2000 }).catch(() => false);
+    const hasTo   = await transferTo.isVisible({ timeout: 2000 }).catch(() => false);
+    console.log(`[test] ${hasFrom ? '✅' : '⚠️'} 转账 Tab - "从" 标签: ${hasFrom ? '可见' : '未找到'}`);
+    console.log(`[test] ${hasTo   ? '✅' : '⚠️'} 转账 Tab - "到" 标签: ${hasTo   ? '可见' : '未找到'}`);
+    expect.soft(hasFrom && hasTo, '转账 Tab 未显示转账方向标签').toBe(true);
+
+    // 6. 关闭 dialog
+    const closeBtn = dialog.locator('button[aria-label="Close"], button:has(img)').last();
+    await closeBtn.click({ force: true }).catch(() => {});
+    await page.waitForTimeout(500);
+    const isDialogGone = await dialog.isVisible({ timeout: 2000 }).catch(() => false);
+    console.log(`[test] ${!isDialogGone ? '✅' : '⚠️'} Dialog 关闭: ${!isDialogGone ? '已关闭' : '仍可见'}`);
+
+    await page.screenshot({ path: `test-results/future-page-check-deposit-withdraw-${Date.now()}.png` });
+  });
+
+
+  // ========================================================
+  // 测试 10：全页截图
   // ========================================================
   test('全页截图', { tag: ['@P0', '@PROD'] }, async ({ loggedInPage: page }) => {
     // 滚动回顶部，截取完整页面
