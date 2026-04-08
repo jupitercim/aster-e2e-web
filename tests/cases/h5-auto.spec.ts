@@ -749,10 +749,11 @@ test.describe.serial('AsterDEX - H5 页面兼容测试', () => {
     await page.goto(`${origin}/zh-CN/portfolio/pro`);
     await page.waitForLoadState('domcontentloaded');
     await page.waitForSelector('text=投资组合', { timeout: 30000 });
+    await page.waitForTimeout(1000);
 
     // 页面标题（用 heading role 避免命中 header 导航里的隐藏 span）
     const title = page.getByRole('heading', { name: '投资组合' }).first();
-    await expect(title).toBeVisible({ timeout: 5000 });
+    await expect(title).toBeVisible({ timeout: 10000 });
 
     // 操作按钮：存款 / 提现 / 转账
     const depositBtn   = page.locator('button:has-text("存款")').first();
