@@ -315,6 +315,21 @@ export const test = base.extend<{}, {
     await page.waitForTimeout(500);
     console.log('[auth] 钱包连接并登录完成');
 
+    // 关闭「账户隐私」弹窗（如有）——登录后立即检查一次
+    const privacyDialog = page.locator('dialog, [role="dialog"]').filter({ hasText: '账户隐私' }).first();
+    if (await privacyDialog.isVisible({ timeout: 3000 }).catch(() => false)) {
+      const confirmBtn = privacyDialog.locator('button:has-text("确认")').first();
+      const closeBtn  = privacyDialog.locator('button').first();
+      if (await confirmBtn.isVisible({ timeout: 1000 }).catch(() => false)) {
+        await confirmBtn.click();
+        console.log('[auth] 关闭了「账户隐私」弹窗（确认）');
+      } else if (await closeBtn.isVisible({ timeout: 1000 }).catch(() => false)) {
+        await closeBtn.click();
+        console.log('[auth] 关闭了「账户隐私」弹窗（关闭按钮）');
+      }
+      await page.waitForTimeout(500);
+    }
+
     await use(page);
   }, { scope: 'worker' }],
 });
