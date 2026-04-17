@@ -110,6 +110,16 @@ test.describe('全站页面视觉检查', () => {
           }
         }
 
+        // 内容过少时重试一次（gray 环境偶发空白页）
+        const textLen: number = await currentPage.evaluate(() => document.body.innerText.trim().length);
+        if (textLen < 100) {
+          console.warn(`[retry] ${pageNode.url} 内容过少(${textLen}字符)，等待3s后重试`);
+          await currentPage.waitForTimeout(3000);
+          await currentPage.reload({ waitUntil: 'networkidle', timeout: 30000 }).catch(async () => {
+            await currentPage.reload({ waitUntil: 'domcontentloaded', timeout: 30000 }).catch(() => {});
+          });
+        }
+
         const report = await checker.run(currentPage);
         allReports.push(report);
 

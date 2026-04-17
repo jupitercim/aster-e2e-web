@@ -175,6 +175,12 @@ export class PageDiscovery {
       return /BTC/i.test(url);
     }
 
+    // spot / futures 路径中末段含 6 位以上连续数字（时间戳生成的动态 symbol，如 BTC_UP_DOWN_1776332900_NUSDT），过滤掉
+    if (/\/trade\/|\/futures\/|\/spot\//.test(url)) {
+      const lastSeg = url.split('/').pop() || '';
+      if (/\d{6,}/.test(lastSeg)) return false;
+    }
+
     return true;
   }
 

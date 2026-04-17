@@ -88,7 +88,7 @@ test.describe.serial('AsterDEX - 现货交易', () => {
   // ========================================================
   // 测试 2：BTC/USDT 限价买入
   // ========================================================
-  test('BTC/USDT 限价买入挂单', { tag: ['@P0', '@PROD'] }, async ({ loggedInPage: page }) => {
+  test('BTC/USDT 限价买入挂单', { tag: ['@P0'] }, async ({ loggedInPage: page }) => {
     // 复用 test 1 已打开的页面，无需重新导航
 
     // 选择限价单
