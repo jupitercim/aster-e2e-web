@@ -663,7 +663,7 @@ test.describe.serial('AsterDEX - H5 页面兼容测试', () => {
     await page.waitForSelector('text=空投', { timeout: 15000 });
 
     // 标题区域
-    const title = page.getByRole('heading').filter({ hasText: /Aster空投/ }).first();
+    const title = page.getByRole('heading').filter({ hasText: /Aster\s*空投/ }).first();
     await expect(title).toBeVisible({ timeout: 5000 });
 
     // 阶段选择按钮
