@@ -52,8 +52,8 @@ test.describe.serial('AsterDEX - Rewards 页面', () => {
       await page.screenshot({ path: `test-results/rewards-content-${Date.now()}.png` });
     }
 
-    // 验证没有加载错误
-    const hasError = await page.locator('text=404').isVisible({ timeout: 1000 }).catch(() => false);
+    // 验证没有加载错误（用精确匹配避免误触发页面中其他含"404"的数字）
+    const hasError = await page.locator('h1:text-is("404"), h2:text-is("404"), [data-testid="404"]').isVisible({ timeout: 1000 }).catch(() => false);
     expect(hasError).toBe(false);
     console.log('[test] ✅ Rewards 内容验证完成');
   });

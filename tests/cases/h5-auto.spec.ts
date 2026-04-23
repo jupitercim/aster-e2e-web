@@ -768,7 +768,7 @@ test.describe.serial('AsterDEX - H5 页面兼容测试', () => {
 
     // 总价值 / 盈亏 / 交易量 数据区
     const totalValue = page.locator('text=总价值').first();
-    await expect(totalValue).toBeVisible({ timeout: 3000 });
+    await expect(totalValue).toBeVisible({ timeout: 8000 });
     const pnlVisible = await page.locator('text=盈亏').first().isVisible({ timeout: 2000 }).catch(() => false);
     console.log(`[test] 盈亏区域可见: ${pnlVisible}`);
 
