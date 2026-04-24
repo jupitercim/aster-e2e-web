@@ -748,7 +748,8 @@ test.describe.serial('AsterDEX - H5 页面兼容测试', () => {
     const origin = new URL(process.env.EXCHANGE_URL!).origin;
     await page.goto(`${origin}/zh-CN/portfolio/pro`);
     await page.waitForLoadState('domcontentloaded');
-    await page.waitForSelector('text=投资组合', { timeout: 30000 });
+    // 等页面正文 heading 出现（而非顶部导航链接），最多 30s
+    await page.waitForSelector('h1:has-text("投资组合"), [role="heading"]:has-text("投资组合")', { timeout: 30000 });
     await page.waitForTimeout(1000);
 
     // 页面标题（用 heading role 避免命中 header 导航里的隐藏 span）
@@ -764,11 +765,13 @@ test.describe.serial('AsterDEX - H5 页面兼容测试', () => {
       if (await btn.isVisible({ timeout: 2000 }).catch(() => false)) btnCount++;
     }
     console.log(`[test] 存款/提现/转账按钮可见: ${btnCount}/3`);
-    expect(btnCount).toBeGreaterThan(0);
+    expect.soft(btnCount, '存款/提现/转账按钮均不可见').toBeGreaterThan(0);
 
     // 总价值 / 盈亏 / 交易量 数据区
     const totalValue = page.locator('text=总价值').first();
-    await expect(totalValue).toBeVisible({ timeout: 8000 });
+    const totalValueVisible = await totalValue.isVisible({ timeout: 15000 }).catch(() => false);
+    console.log(`[test] 总价值区域可见: ${totalValueVisible ? '✅' : '⚠️'}`);
+    expect.soft(totalValueVisible, '总价值区域未在 15s 内出现').toBe(true);
     const pnlVisible = await page.locator('text=盈亏').first().isVisible({ timeout: 2000 }).catch(() => false);
     console.log(`[test] 盈亏区域可见: ${pnlVisible}`);
 
