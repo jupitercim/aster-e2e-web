@@ -1,7 +1,7 @@
 // spec: specs/health-check-shield.plan.md
 // seed: tests/cases/seed.spec.ts
 
-import { test, expect } from '../fixtures/auth';
+import { test } from '../fixtures/auth';
 
 test.describe.serial('AsterDEX - Shield 交易页面检查', () => {
 
