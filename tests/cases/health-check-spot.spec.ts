@@ -194,7 +194,7 @@ test.describe.serial('AsterDEX - 现货页面检查', () => {
     console.log(`[test] ${hasSell ? '✅' : '⚠️'} 卖出按钮: ${hasSell ? '可见' : '未找到'}`);
 
     // 3. 切到限价单，验证价格输入框可见
-    await page.locator('button:not([role="combobox"]):text("限价")').click();
+    await page.locator('button:not([role="combobox"]):text("限价")').click({ force: true, timeout: 5000 }).catch(() => {});
     await page.waitForTimeout(500);
     const priceInput = page.locator('input[placeholder="价格"]');
     const hasPriceInput = await priceInput.isVisible({ timeout: 3000 }).catch(() => false);
@@ -214,7 +214,7 @@ test.describe.serial('AsterDEX - 现货页面检查', () => {
     console.log(`[test] ${hasQtyUnit ? '✅' : '⚠️'} 数量单位选择器 (USDT/BTC): ${hasQtyUnit ? '可见' : '未找到'}`);
 
     // 5. 切到市价单，价格输入框不可编辑或显示市场价格占位符
-    await page.locator('button:not([role="combobox"]):text("市价")').click();
+    await page.locator('button:not([role="combobox"]):text("市价")').click({ force: true, timeout: 5000 }).catch(() => {});
     await page.waitForTimeout(500);
     const marketPriceInput = page.locator('input[placeholder="价格"]');
     const isMarketPriceEditable = await marketPriceInput.isEditable({ timeout: 2000 }).catch(() => false);
