@@ -293,18 +293,18 @@ test.describe.serial('AsterDEX - Shield 模式交易', () => {
     const gridInput = page.locator('#gridCount').first();
     await gridInput.waitFor({ state: 'visible', timeout: 3000 }).catch(() => {});
     await gridInput.fill('5').catch(() => {});
-    await gridInput.press('Tab');
+    await gridInput.press('Tab').catch(() => {});
     await page.waitForTimeout(1500);
     console.log('[test] 网格数量: 5');
 
     // ── 填写保证金（填完价格和格数后 #gridInitialValue 变为可见）──
     const marginInput = page.locator('#gridInitialValue').last(); // 取最后一个（visible 的那个）
     await marginInput.waitFor({ state: 'visible', timeout: 6000 }).catch(() => {});
-    const ph = await marginInput.getAttribute('placeholder') ?? '';
+    const ph = (await marginInput.getAttribute('placeholder').catch(() => null)) ?? '';
     const minVal = parseFloat(ph.replace('≥', '').replace(/,/g, '')) || 1;
     const fillVal = Math.max(Math.ceil(minVal) * 10, 100);
-    await marginInput.fill(String(fillVal));
-    await marginInput.press('Tab');
+    await marginInput.fill(String(fillVal)).catch(() => {});
+    await marginInput.press('Tab').catch(() => {});
     await page.waitForTimeout(600);
     console.log(`[test] 保证金: ${fillVal} (min ${ph})`);
 
@@ -321,7 +321,7 @@ test.describe.serial('AsterDEX - Shield 模式交易', () => {
 
     await page.screenshot({ path: `test-results/grid-form-filled-${Date.now()}.png` });
 
-    await createBtn.click({ force: true });
+    await createBtn.click({ force: true }).catch(() => {});
     await page.waitForTimeout(1000);
 
     // 处理可能出现的确认弹窗
