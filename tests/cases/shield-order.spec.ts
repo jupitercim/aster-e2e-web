@@ -253,36 +253,34 @@ test.describe.serial('AsterDEX - Shield 模式交易', () => {
     const upperPrice = Math.round(markPrice - 1000);
     console.log(`[test] 目标价格区间: ${lowerPrice} ~ ${upperPrice}`);
 
-    // ── 点击「手动创建」tab（等待按钮出现再点击）──
-    const manualTab = page.locator('[data-testid="manual"], button:text("手动创建"), [role="tab"]:text("手动创建")').first();
-    await manualTab.waitFor({ state: 'visible', timeout: 15000 }).catch(() => {});
-    await manualTab.click({ force: true }).catch(() => {
-      // fallback: 使用 evaluate
-      return page.evaluate(() => {
-        const el = (document.querySelector('[data-testid="manual"]') ||
-          Array.from(document.querySelectorAll('button,[role="tab"]')).find(e => e.textContent?.trim() === '手动创建')) as HTMLElement;
-        el?.click();
-      });
+    // ── 等待页面完全渲染（等 #gridLowerLimit 或 手动创建 出现）──
+    await page.waitForSelector('#gridLowerLimit, [data-testid="manual"], button:has-text("手动创建")', { timeout: 20000 }).catch(() => {});
+
+    // ── 点击「手动创建」tab ──
+    await page.evaluate(() => {
+      const byTestId = document.querySelector('[data-testid="manual"]') as HTMLElement;
+      if (byTestId) { byTestId.click(); return; }
+      const byText = Array.from(document.querySelectorAll('button,[role="tab"]'))
+        .find(el => el.textContent?.trim() === '手动创建') as HTMLElement;
+      byText?.click();
     });
     await page.waitForTimeout(800);
     console.log('[test] ✅ 手动创建');
 
-    // ── 点击「做多」方向（等待出现再点击）──
-    const longBtn = page.locator('[data-testid="LONG"], button:text("做多"), [role="radio"]:text("做多")').first();
-    await longBtn.waitFor({ state: 'visible', timeout: 8000 }).catch(() => {});
-    await longBtn.click({ force: true }).catch(() => {
-      return page.evaluate(() => {
-        const el = (document.querySelector('[data-testid="LONG"]') ||
-          Array.from(document.querySelectorAll('button,[role="tab"],[role="radio"]')).find(e => /^(做多|Long|LONG)$/.test(e.textContent?.trim() ?? ''))) as HTMLElement;
-        el?.click();
-      });
+    // ── 点击「做多」方向 ──
+    await page.evaluate(() => {
+      const byTestId = document.querySelector('[data-testid="LONG"]') as HTMLElement;
+      if (byTestId) { byTestId.click(); return; }
+      const byText = Array.from(document.querySelectorAll('button,[role="tab"],[role="radio"]'))
+        .find(el => /^(做多|Long|LONG)$/.test(el.textContent?.trim() ?? '')) as HTMLElement;
+      byText?.click();
     });
     await page.waitForTimeout(600);
     console.log('[test] ✅ 做多');
 
     // ── 填写最低价格 ──
     const lowerInput = page.locator('#gridLowerLimit').first();
-    await lowerInput.waitFor({ state: 'visible', timeout: 15000 }).catch(() => {});
+    await lowerInput.waitFor({ state: 'visible', timeout: 10000 }).catch(() => {});
     await lowerInput.fill(String(lowerPrice)).catch(() => {});
     await page.waitForTimeout(600);
     console.log(`[test] 最低价格: ${lowerPrice}`);
