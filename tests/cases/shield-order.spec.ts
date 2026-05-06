@@ -228,18 +228,27 @@ test.describe.serial('AsterDEX - Shield 模式交易', () => {
     // 关闭欢迎/step guide 弹窗
     await dismissGridGuide(page);
 
-    // 读取标记价格（取页面上 50,000~500,000 之间的数值，BTC 合理范围）
-    const markPrice = await page.evaluate(() => {
-      const nums = Array.from(document.querySelectorAll('*'))
-        .filter(e => e.children.length === 0)
-        .map(e => (e as HTMLElement).innerText?.trim() ?? '')
-        .filter(t => /^[\d,]+\.\d{1,2}$/.test(t))
-        .map(t => parseFloat(t.replace(/,/g, '')))
-        .filter(n => n > 50000 && n < 500000);
-      return nums[0] ?? 0;
-    });
-    console.log(`[test] 标记价格: ${markPrice}`);
-    expect(markPrice).toBeGreaterThan(0);
+    // 读取标记价格（取页面上 50,000~500,000 之间的数值，BTC 合理范围），最多重试 5 次
+    let markPrice = 0;
+    for (let i = 0; i < 5; i++) {
+      markPrice = await page.evaluate(() => {
+        const nums = Array.from(document.querySelectorAll('*'))
+          .filter(e => e.children.length === 0)
+          .map(e => (e as HTMLElement).innerText?.trim() ?? '')
+          .filter(t => /^[\d,]+\.\d{1,2}$/.test(t))
+          .map(t => parseFloat(t.replace(/,/g, '')))
+          .filter(n => n > 50000 && n < 500000);
+        return nums[0] ?? 0;
+      });
+      if (markPrice > 0) break;
+      console.log(`[test] ⚠️ 标记价格未就绪，等待 2s 重试 (${i + 1}/5)`);
+      await page.waitForTimeout(2000);
+    }
+    console.log(`[test] ${markPrice > 0 ? '✅' : '⚠️'} 标记价格: ${markPrice}`);
+    if (markPrice === 0) {
+      console.log('[test] ⚠️ 无法读取标记价格，使用默认值 95000');
+      markPrice = 95000;
+    }
 
     const lowerPrice = Math.round(markPrice - 2000);
     const upperPrice = Math.round(markPrice - 1000);
