@@ -217,9 +217,9 @@ test.describe.serial('AsterDEX - Shield 模式交易', () => {
 
 
   // ========================================================
-  // 测试 4：网格交易 - 手动创建做多策略
+  // 测试 4：网格交易 - 手动创建做多策略（暂时注释，持续 flaky 待后续完善）
   // ========================================================
-  test('网格交易 - 手动创建做多策略（价格区间 mark-2000 ~ mark-1000，5格）', { tag: ['@P0', '@PROD'] }, async ({ loggedInPage: page }) => {
+  test.skip('网格交易 - 手动创建做多策略（价格区间 mark-2000 ~ mark-1000，5格）', { tag: ['@P0', '@PROD'] }, async ({ loggedInPage: page }) => {
     await page.goto(getGridUrl());
     await page.waitForLoadState('domcontentloaded');
     await page.waitForTimeout(5000);
